@@ -143,7 +143,7 @@ impl eframe::App for MyApp {
 
                     // Histograms for controller gains
                     ui.vertical(|ui| {
-                        let hist_plot_height = 150.0;
+                        let hist_plot_height = 75.0; // Halved the height to fit four
                         let gain_hist = Plot::new("gain_1_hist")
                             .height(hist_plot_height)
                             .x_axis_label("K_pos")
@@ -159,6 +159,24 @@ impl eframe::App for MyApp {
                             .show_y(false);
                         gain_hist_2.show(ui, |plot_ui| {
                             let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i-2*i) as f64 / 8.0).exp() * 15.0)).collect();
+                            plot_ui.bar_chart(BarChart::new(bars));
+                        });
+
+                        let gain_hist_3 = Plot::new("gain_3_hist")
+                            .height(hist_plot_height)
+                            .x_axis_label("K_angle")
+                            .show_y(false);
+                        gain_hist_3.show(ui, |plot_ui| {
+                            let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i+i) as f64 / 12.0).exp() * 18.0)).collect();
+                            plot_ui.bar_chart(BarChart::new(bars));
+                        });
+
+                        let gain_hist_4 = Plot::new("gain_4_hist")
+                            .height(hist_plot_height)
+                            .x_axis_label("K_ang_vel")
+                            .show_y(false);
+                        gain_hist_4.show(ui, |plot_ui| {
+                            let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i-3*i) as f64 / 9.0).exp() * 22.0)).collect();
                             plot_ui.bar_chart(BarChart::new(bars));
                         });
                     });
