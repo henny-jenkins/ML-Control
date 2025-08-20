@@ -14,9 +14,6 @@ fn test_func() {
 }
 
 struct MyApp {
-    name: String,
-    age: u32,
-    // Data for our plot
     points: Vec<[f64; 2]>,
 }
 
@@ -30,11 +27,7 @@ impl Default for MyApp {
             })
             .collect();
 
-        Self {
-            name: "Arthur".to_owned(),
-            age: 42,
-            points,
-        }
+        Self {points}
     }
 }
 
@@ -44,15 +37,9 @@ impl eframe::App for MyApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Hello egui!");
-            ui.horizontal(|ui| {
-                ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name);
-            });
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
             if ui.button("Click me").clicked() {
                 println!("Button clicked!");
             }
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
 
             // Add some space before the plot
             ui.add_space(10.0);
