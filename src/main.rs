@@ -175,9 +175,9 @@ impl eframe::App for MyApp {
                 ui.horizontal(|ui| {
                     ui.group(|ui| {
                         let angle_plot = Plot::new("angle_plot")
-                            .x_axis_label("Time (s)")
-                            .y_axis_label("Angle (rad)")
-                            .width(ui.available_width())
+                            .x_axis_label("Time [s]")
+                            .y_axis_label("Angle [rad]")
+                            .width(ui.available_width() / 2f32)
                             .height(plot_height);
                         angle_plot.show(ui, |plot_ui| {
                             plot_ui.line(Line::new(PlotPoints::from(self.angle_points.clone())));
@@ -185,8 +185,8 @@ impl eframe::App for MyApp {
                     });
                     ui.group(|ui| {
                         let angle_vel_plot = Plot::new("angle_vel_plot")
-                            .x_axis_label("Time (s)")
-                            .y_axis_label("Ang. Vel (rad/s)")
+                            .x_axis_label("Time [s]")
+                            .y_axis_label("Ang. Vel [rad/s]")
                             .width(ui.available_width())
                             .height(plot_height);
                         angle_vel_plot.show(ui, |plot_ui| {
@@ -197,9 +197,9 @@ impl eframe::App for MyApp {
                 ui.horizontal(|ui| {
                     ui.group(|ui| {
                         let pos_plot = Plot::new("pos_plot")
-                            .x_axis_label("Time (s)")
-                            .y_axis_label("Position (m)")
-                            .width(ui.available_width())
+                            .x_axis_label("Time [s]")
+                            .y_axis_label("Position [m]")
+                            .width(ui.available_width() / 2f32)
                             .height(plot_height);
                         pos_plot.show(ui, |plot_ui| {
                             plot_ui.line(Line::new(PlotPoints::from(self.pos_points.clone())));
@@ -207,8 +207,8 @@ impl eframe::App for MyApp {
                     });
                     ui.group(|ui| {
                         let pos_vel_plot = Plot::new("pos_vel_plot")
-                            .x_axis_label("Time (s)")
-                            .y_axis_label("Velocity (m/s)")
+                            .x_axis_label("Time [s]")
+                            .y_axis_label("Velocity [m/s]")
                             .width(ui.available_width())
                             .height(plot_height);
                         pos_vel_plot.show(ui, |plot_ui| {
