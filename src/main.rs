@@ -176,6 +176,10 @@ impl eframe::App for MyApp {
                     // run the simulation
                     let sim_out: Vec<[f32; 5]> = inverted_pendulum::run_physics(&self.initial_condition, &self.sim_time, &self.dt, &lqr_gains, &self.reference_signal, &self.params);
 
+                    // calculate the cost of the LQR simulation
+                    let wt_vec = nalgebra::Vector4::new(1f32, 0.01f32, 10f32, 5f32);
+                    let lqr_cost: f32 = inverted_pendulum::cost(&self.reference_signal, &sim_out, &wt_vec);
+
                     // plot the simulation
                     self.pos_points.clear();
                     self.pos_vel_points.clear();

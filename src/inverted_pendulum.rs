@@ -97,3 +97,54 @@ pub fn run_physics(initial_condition: &Vector4<f32>, sim_time: &f32, dt: &f32, k
         params);
     return sim_out;
 }
+
+pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, weight_vec: &Vector4<f32>) -> f32 {
+    // cost function to evaluate the quality of a given controller
+    // compares the state variables of the simulation to the reference signal across time
+    
+    // define kill values and corresponding kill cost to enforce max state deviation and stabilize simulation
+    let kill_x: f32 = 10f32;
+    let kill_v: f32 = 10f32;
+    let kill_theta: f32 = 10f32;
+    let kill_theta_dot: f32 = 10f32;
+    let thresholds = [kill_x, kill_v, kill_theta, kill_theta_dot];
+    let kill_cost: f32 = 1000f32;
+
+    // determine if any state variable exceeds its corresponding threshold
+    let exceeds_threshold: bool = simulation_output.iter().any(|arr| {
+        arr[1..].iter().zip(thresholds.iter()).any(|(&value, &thresh)| value > thresh)
+    });
+
+    if exceeds_threshold {
+        println!("simulation exceeds thresholds of valid state values");
+        // if the simulation is unstable, return the kill cost
+        return kill_cost;
+    }
+
+    // initialize some error vectors to fill
+    let mut err_x = Vec::with_capacity(simulation_output.len());
+    let mut err_v = Vec::with_capacity(simulation_output.len());
+    let mut err_theta = Vec::with_capacity(simulation_output.len());
+    let mut err_theta_dot = Vec::with_capacity(simulation_output.len());
+
+    for array in simulation_output {
+        let slice = &array[1..];    // pull out the last 4 values of each array
+        // err = ref - x (do this for each state variable)
+        // load the error vectors
+        err_x.push(reference_signal[0] - slice[0]);
+        err_v.push(reference_signal[1] - slice[1]);
+        err_theta.push(reference_signal[2] - slice[2]);
+        err_theta_dot.push(reference_signal[3] - slice[3]);
+    }
+
+    // use the error vectors with the weights to calculate cost
+    // sum the errors in the vector (lazy "integrate") and multiply by the weights
+    let cost_x: f32 = weight_vec[0] * err_x.iter().sum::<f32>();
+    let cost_v: f32 = weight_vec[1] * err_v.iter().sum::<f32>();
+    let cost_theta: f32 = weight_vec[2] * err_theta.iter().sum::<f32>();
+    let cost_theta_dot: f32 = weight_vec[3] * err_theta_dot.iter().sum::<f32>();
+
+    let total_cost: f32 = cost_x + cost_v + cost_theta + cost_theta_dot;
+    println!("total cost: {}", total_cost);
+    return total_cost;
+}
