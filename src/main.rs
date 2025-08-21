@@ -32,6 +32,9 @@ struct MyApp {
     angle_vel_points: Vec<[f64; 2]>,
     pos_points: Vec<[f64; 2]>,
     pos_vel_points: Vec<[f64; 2]>,
+
+    // LQR data flag
+    lqr_data_available: bool,
 }
 
 impl Default for MyApp {
@@ -87,6 +90,7 @@ impl Default for MyApp {
             angle_vel_points,
             pos_points,
             pos_vel_points,
+            lqr_data_available: false,
         }
     }
 }
@@ -115,9 +119,14 @@ impl eframe::App for MyApp {
                 // simulation time values
                 ui.add(egui::DragValue::new(&mut self.sim_time).speed(0.1).prefix("simulation duration: [s]: "));
                 ui.add(egui::DragValue::new(&mut self.dt).speed(0.1).prefix("simulation dt: [s]: "));
-                if ui.button("Start GA Optimization").clicked() { /* Logic to start GA */ }
-                if ui.button("Stop").clicked() { /* Logic to stop GA */ }
-                if ui.button("Reset").clicked() { /* Logic to reset simulation */ }
+                
+                ui.horizontal(|ui| {
+                    if ui.button("Start GA").clicked() { /* Logic to start GA */ }
+                    if ui.button("Stop").clicked() { /* Logic to stop GA */ }
+                    if ui.button("Reset").clicked() { 
+                        *self = Self::default();
+                    }
+                });
             });
             ui.separator();
             ui.collapsing("Genetic Algorithm", |ui| {
@@ -158,6 +167,7 @@ impl eframe::App for MyApp {
                         self.angle_points.push([time, angle]);
                         self.angle_vel_points.push([time, angle_vel]);
                     }
+                    self.lqr_data_available = true;
                 }
                 ui.label("LQR Gains: [-100, -183.2793, 1.6832e03, 646.6130]");
             });
@@ -244,9 +254,16 @@ impl eframe::App for MyApp {
                             .x_axis_label("Time [s]")
                             .y_axis_label("Angle [rad]")
                             .width(ui.available_width() / 2f32)
-                            .height(plot_height);
+                            .height(plot_height)
+                            .show_x(true)
+                            .legend(egui_plot::Legend::default());
                         angle_plot.show(ui, |plot_ui| {
-                            plot_ui.line(Line::new(PlotPoints::from(self.angle_points.clone())));
+                            let line = Line::new(PlotPoints::from(self.angle_points.clone()));
+                            if self.lqr_data_available {
+                                plot_ui.line(line.name("LQR Baseline"));
+                            } else {
+                                plot_ui.line(line);
+                            }
                         });
                     });
                     ui.group(|ui| {
@@ -254,9 +271,16 @@ impl eframe::App for MyApp {
                             .x_axis_label("Time [s]")
                             .y_axis_label("Ang. Vel [rad/s]")
                             .width(ui.available_width())
-                            .height(plot_height);
+                            .height(plot_height)
+                            .show_x(true)
+                            .legend(egui_plot::Legend::default());
                         angle_vel_plot.show(ui, |plot_ui| {
-                            plot_ui.line(Line::new(PlotPoints::from(self.angle_vel_points.clone())));
+                            let line = Line::new(PlotPoints::from(self.angle_vel_points.clone()));
+                            if self.lqr_data_available {
+                                plot_ui.line(line.name("LQR Baseline"));
+                            } else {
+                                plot_ui.line(line);
+                            }
                         });
                     });
                 });
@@ -266,9 +290,16 @@ impl eframe::App for MyApp {
                             .x_axis_label("Time [s]")
                             .y_axis_label("Position [m]")
                             .width(ui.available_width() / 2f32)
-                            .height(plot_height);
+                            .height(plot_height)
+                            .show_x(true)
+                            .legend(egui_plot::Legend::default());
                         pos_plot.show(ui, |plot_ui| {
-                            plot_ui.line(Line::new(PlotPoints::from(self.pos_points.clone())));
+                            let line = Line::new(PlotPoints::from(self.pos_points.clone()));
+                            if self.lqr_data_available {
+                                plot_ui.line(line.name("LQR Baseline"));
+                            } else {
+                                plot_ui.line(line);
+                            }
                         });
                     });
                     ui.group(|ui| {
@@ -276,9 +307,16 @@ impl eframe::App for MyApp {
                             .x_axis_label("Time [s]")
                             .y_axis_label("Velocity [m/s]")
                             .width(ui.available_width())
-                            .height(plot_height);
+                            .height(plot_height)
+                            .show_x(true)
+                            .legend(egui_plot::Legend::default());
                         pos_vel_plot.show(ui, |plot_ui| {
-                            plot_ui.line(Line::new(PlotPoints::from(self.pos_vel_points.clone())));
+                            let line = Line::new(PlotPoints::from(self.pos_vel_points.clone()));
+                            if self.lqr_data_available {
+                                plot_ui.line(line.name("LQR Baseline"));
+                            } else {
+                                plot_ui.line(line);
+                            }
                         });
                     });
                 });
