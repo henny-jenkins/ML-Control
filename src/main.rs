@@ -13,14 +13,18 @@ fn main() -> Result<(), eframe::Error> {
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 struct MyApp {
+    // Simulation Parameters
+    sim_time: f32,
+    dt: f32,
+    reference_signal: nalgebra::Vector4<f32>,
+    initial_condition: nalgebra::Vector4<f32>,
+
     // GA Parameters
     population_size: usize,
     mutation_rate: f32,
 
     // Pendulum Parameters
-    cart_mass: f64,
-    pole_mass: f64,
-    pole_length: f64,
+    params: inverted_pendulum::ModelParameters,
 
     // Dummy data for plots
     cost_points: Vec<[f64; 2]>,
@@ -71,11 +75,13 @@ impl Default for MyApp {
         }).collect();
 
         Self {
+            sim_time: 10.0,
+            dt: 0.01,
+            reference_signal: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
+            initial_condition: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
             population_size: 100,
             mutation_rate: 0.10,
-            cart_mass: 1.0,
-            pole_mass: 0.5,
-            pole_length: 1.0,
+            params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points,
             angle_points,
             angle_vel_points,
@@ -94,6 +100,21 @@ impl eframe::App for MyApp {
             ui.heading("Configuration & Controls");
             ui.separator();
             ui.collapsing("Simulation Control", |ui| {
+                // reference signal controls
+                ui.add(egui::DragValue::new(&mut self.reference_signal[0]).speed(0.1).prefix("r_x [m]: "));
+                ui.add(egui::DragValue::new(&mut self.reference_signal[1]).speed(0.1).prefix("r_v [m/s]: "));
+                ui.add(egui::DragValue::new(&mut self.reference_signal[2]).speed(0.1).prefix("r_theta [rad]: "));
+                ui.add(egui::DragValue::new(&mut self.reference_signal[3]).speed(0.1).prefix("r_theta_dot [rad/s]: "));
+
+                // initial conditions controls
+                ui.add(egui::DragValue::new(&mut self.initial_condition[0]).speed(0.1).prefix("x0_x [m]: "));
+                ui.add(egui::DragValue::new(&mut self.initial_condition[1]).speed(0.1).prefix("x0_v [m/s]: "));
+                ui.add(egui::DragValue::new(&mut self.initial_condition[2]).speed(0.1).prefix("x0_theta [rad]: "));
+                ui.add(egui::DragValue::new(&mut self.initial_condition[3]).speed(0.1).prefix("x0_theta_dot [rad/s]: "));
+
+                // simulation time values
+                ui.add(egui::DragValue::new(&mut self.sim_time).speed(0.1).prefix("simulation duration: [s]: "));
+                ui.add(egui::DragValue::new(&mut self.dt).speed(0.1).prefix("simulation dt: [s]: "));
                 if ui.button("Start GA Optimization").clicked() { /* Logic to start GA */ }
                 if ui.button("Stop").clicked() { /* Logic to stop GA */ }
                 if ui.button("Reset").clicked() { /* Logic to reset simulation */ }
@@ -105,23 +126,19 @@ impl eframe::App for MyApp {
             });
             ui.separator();
             ui.collapsing("Pendulum Model", |ui| {
-                ui.add(egui::DragValue::new(&mut self.cart_mass).speed(0.1).prefix("Cart Mass (kg): "));
-                ui.add(egui::DragValue::new(&mut self.pole_mass).speed(0.1).prefix("Pole Mass (kg): "));
-                ui.add(egui::DragValue::new(&mut self.pole_length).speed(0.1).prefix("Pole Length (m): "));
+                ui.add(egui::DragValue::new(&mut self.params.0).speed(0.1).prefix("Pole Mass [kg]: "));
+                ui.add(egui::DragValue::new(&mut self.params.1).speed(0.1).prefix("Cart Mass [kg]: "));
+                ui.add(egui::DragValue::new(&mut self.params.2).speed(0.1).prefix("Pole Length [m]: "));
+                ui.add(egui::DragValue::new(&mut self.params.3).speed(0.1).prefix("Damping Coefficient [dim]: "));
             });
             ui.separator();
             ui.collapsing("LQR Baseline", |ui| {
                 if ui.button("Calculate LQR Solution").clicked() {
                     // define simulation parameters
                     let lqr_gains = nalgebra::Vector4::new(-100f32, -183.2793, 1.6832e03, 646.6130);
-                    let params = inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32);
-                    let sim_time = 10f32;
-                    let dt = 0.01f32;
-                    let reference_signal = nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32);
-                    let initial_condition = nalgebra::Vector4::new(-1f32, 0f32, 3.14f32 + 0.1f32, 0f32);
 
                     // run the simulation
-                    let sim_out: Vec<[f32; 5]> = inverted_pendulum::run_physics(&initial_condition, &sim_time, &dt, &lqr_gains, &reference_signal, &params);
+                    let sim_out: Vec<[f32; 5]> = inverted_pendulum::run_physics(&self.initial_condition, &self.sim_time, &self.dt, &lqr_gains, &self.reference_signal, &self.params);
 
                     // plot the simulation
                     self.pos_points.clear();
