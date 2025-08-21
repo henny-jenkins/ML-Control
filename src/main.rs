@@ -111,8 +111,38 @@ impl eframe::App for MyApp {
             });
             ui.separator();
             ui.collapsing("LQR Baseline", |ui| {
-                if ui.button("Calculate LQR Solution").clicked() { /* Logic to calculate LQR */ }
-                ui.label("LQR Gains: [k1, k2, k3, k4]");
+                if ui.button("Calculate LQR Solution").clicked() {
+                    // define simulation parameters
+                    let lqr_gains = nalgebra::Vector4::new(-100f32, -183.2793, 1.6832e03, 646.6130);
+                    let params = inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32);
+                    let sim_time = 10f32;
+                    let dt = 0.01f32;
+                    let reference_signal = nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32);
+                    let initial_condition = nalgebra::Vector4::new(-1f32, 0f32, 3.14f32 + 0.1f32, 0f32);
+
+                    // run the simulation
+                    let sim_out: Vec<[f32; 5]> = inverted_pendulum::run_physics(&initial_condition, &sim_time, &dt, &lqr_gains, &reference_signal, &params);
+
+                    // plot the simulation
+                    self.pos_points.clear();
+                    self.pos_vel_points.clear();
+                    self.angle_points.clear();
+                    self.angle_vel_points.clear();
+
+                    for data_point in sim_out {
+                        let time = data_point[0] as f64;
+                        let pos = data_point[1] as f64;
+                        let pos_vel = data_point[2] as f64;
+                        let angle = data_point[3] as f64;
+                        let angle_vel = data_point[4] as f64;
+
+                        self.pos_points.push([time, pos]);
+                        self.pos_vel_points.push([time, pos_vel]);
+                        self.angle_points.push([time, angle]);
+                        self.angle_vel_points.push([time, angle_vel]);
+                    }
+                }
+                ui.label("LQR Gains: [-100, -183.2793, 1.6832e03, 646.6130]");
             });
         });
 

@@ -1,39 +1,33 @@
 // A module containing an implementation of the linear and nonlinear dynamics for an inverted
 // pendulum on a cart
-mod inverted_pendulum {
+
 use nalgebra::Vector4;
 
-    pub struct ModelParameters {
-        // structure to hold model parameters for nonlinear pendulum model
-        pub m: f32, // pendulum mass
-        pub M: f32, // cart mass
-        pub L: f32, // pendulum length
-        pub d: f32, // damping coefficient
-    }
+    pub struct ModelParameters(pub f32, pub f32, pub f32, pub f32);
 
     pub fn nonlinear_dynamics(state_vec: &Vector4<f32>, ctrl_signal: &f32, params: &ModelParameters) -> Vector4<f32> {
-        let m = params.m;
-        let M = params.M;
-        let L = params.L;
-        let d = params.d;
+        let pendulum_mass = params.0;
+        let cart_mass = params.1;
+        let pendulum_length = params.2;
+        let damping = params.3;
         let g: f32 = -9.813;    // gravity
 
         // state definition: state_vec = [x, x_dot, theta, theta_dot]
         let sx: f32 = state_vec[2].sin();   // short-hand for sin(theta)
         let cx: f32 = state_vec[2].cos();   // short-hand for cos(theta)
-        let denom: f32 = m * L * L * (M + m * (1f32 - (cx.powi(2))));   // denominator of expression
+        let denom: f32 = pendulum_mass * pendulum_length * pendulum_length * (cart_mass + pendulum_mass * (1f32 - (cx.powi(2))));   // denominator of expression
 
         let mut dx = Vector4::<f32>::zeros();  // allocate the output
         
         // define dynamics
         dx[0] = state_vec[1];
-        dx[1] = (1f32 / denom) * ((-m.powi(2)) * L.powi(2) * g * cx * sx + m * L.powi(2) * (m * L * (state_vec[3].powi(2)) * sx - d * state_vec[1])) + m * L * L * (1f32 / denom) * ctrl_signal;
+        dx[1] = (1f32 / denom) * ((-pendulum_mass.powi(2)) * pendulum_length.powi(2) * g * cx * sx + pendulum_mass * pendulum_length.powi(2) * (pendulum_mass * pendulum_length * (state_vec[3].powi(2)) * sx - damping * state_vec[1])) + pendulum_mass * pendulum_length * pendulum_length * (1f32 / denom) * ctrl_signal;
         dx[2] = state_vec[3];
-        dx[3] = (1f32 / denom) * ((m + M) * m * g * L * sx - m * L * cx * (m * L * (state_vec[3].powi(2)) * sx - d * state_vec[1])) - m * L * cx * (1f32 / denom) * ctrl_signal;
+        dx[3] = (1f32 / denom) * ((pendulum_mass + cart_mass) * pendulum_mass * g * pendulum_length * sx - pendulum_mass * pendulum_length * cx * (pendulum_mass * pendulum_length * (state_vec[3].powi(2)) * sx - damping * state_vec[1])) - pendulum_mass * pendulum_length * cx * (1f32 / denom) * ctrl_signal;
         return dx;  // return state derivatives
     }
 
-    fn rk4(initial_condition: Vector4<f32>, t_vec: Vec<f32>, k: Vector4<f32>, reference_signal: Vector4<f32>, params: &ModelParameters) -> Vec<[f32; 5]> {
+    fn rk4(initial_condition: &Vector4<f32>, t_vec: &Vec<f32>, k: &Vector4<f32>, reference_signal: &Vector4<f32>, params: &ModelParameters) -> Vec<[f32; 5]> {
         // function that runs a 4th order Runge Kutta integrator method on nonlinear pendulum
         // dynamics
         // input arguments:
@@ -56,9 +50,9 @@ use nalgebra::Vector4;
             return ctrl_signal;
         }
         // pre-allocate the simulation output
-        let mut sim_out: Vec<[f32; 5]> = Vec::with_capacity(t_vec.len());
+        let mut sim_out: Vec<[f32; 5]> = vec![[0.0; 5]; t_vec.len()];
         let h: f32 = t_vec[1] - t_vec[0];   // determine step size from time vector
-        let mut x_new: Vector4<f32> = initial_condition;    // init state vec as initial condition
+        let mut x_new: Vector4<f32> = *initial_condition;    // init state vec as initial condition
         for i in 0..t_vec.len() {
             // core rk4 computation
             let mut ctrl_signal = compute_ctrl_signal(&k, &reference_signal, &x_new);
@@ -80,4 +74,26 @@ use nalgebra::Vector4;
         }
         return sim_out;
     }
-}
+
+    pub fn run_physics(initial_condition: &Vector4<f32>, sim_time: &f32, dt: &f32, k: &Vector4<f32>, reference_signal: &Vector4<f32>, params: &ModelParameters) -> Vec<[f32; 5]> {
+        // function to handle the rk4 physics simulation
+        fn linspace_step(start: f32, end: &f32, step: &f32) -> Vec<f32> {
+            // internal method to linspace a vector
+            let mut linspaced_vec = Vec::new();
+            let mut val = start;
+
+            while val < *end {
+                linspaced_vec.push(val);
+                val += step;
+            }
+            return linspaced_vec;
+        }
+
+        let time_vec: Vec<f32> = linspace_step(0f32, sim_time, dt);
+        let sim_out: Vec<[f32; 5]> = rk4(initial_condition,
+            &time_vec,
+            k,
+            reference_signal,
+            params);
+        return sim_out;
+    }
