@@ -104,17 +104,41 @@ impl eframe::App for MyApp {
             ui.heading("Configuration & Controls");
             ui.separator();
             ui.collapsing("Simulation Control", |ui| {
-                // reference signal controls
-                ui.add(egui::DragValue::new(&mut self.reference_signal[0]).speed(0.1).prefix("r_x [m]: "));
-                ui.add(egui::DragValue::new(&mut self.reference_signal[1]).speed(0.1).prefix("r_v [m/s]: "));
-                ui.add(egui::DragValue::new(&mut self.reference_signal[2]).speed(0.1).prefix("r_theta [rad]: "));
-                ui.add(egui::DragValue::new(&mut self.reference_signal[3]).speed(0.1).prefix("r_theta_dot [rad/s]: "));
+                ui.label("Reference Signal:");
+                egui::Grid::new("reference_signal_grid").num_columns(2).striped(true).show(ui, |ui| {
+                    ui.label("r_x [m]:");
+                    ui.add(egui::DragValue::new(&mut self.reference_signal[0]).speed(0.1));
+                    ui.end_row();
+                    ui.label("r_v [m/s]:");
+                    ui.add(egui::DragValue::new(&mut self.reference_signal[1]).speed(0.1));
+                    ui.end_row();
+                    ui.label("r_theta [rad]:");
+                    ui.add(egui::DragValue::new(&mut self.reference_signal[2]).speed(0.1));
+                    ui.end_row();
+                    ui.label("r_theta_dot [rad/s]:");
+                    ui.add(egui::DragValue::new(&mut self.reference_signal[3]).speed(0.1));
+                    ui.end_row();
+                });
 
-                // initial conditions controls
-                ui.add(egui::DragValue::new(&mut self.initial_condition[0]).speed(0.1).prefix("x0_x [m]: "));
-                ui.add(egui::DragValue::new(&mut self.initial_condition[1]).speed(0.1).prefix("x0_v [m/s]: "));
-                ui.add(egui::DragValue::new(&mut self.initial_condition[2]).speed(0.1).prefix("x0_theta [rad]: "));
-                ui.add(egui::DragValue::new(&mut self.initial_condition[3]).speed(0.1).prefix("x0_theta_dot [rad/s]: "));
+                ui.separator();
+
+                ui.label("Initial Conditions:");
+                egui::Grid::new("initial_condition_grid").num_columns(2).striped(true).show(ui, |ui| {
+                    ui.label("x0_x [m]:");
+                    ui.add(egui::DragValue::new(&mut self.initial_condition[0]).speed(0.1));
+                    ui.end_row();
+                    ui.label("x0_v [m/s]:");
+                    ui.add(egui::DragValue::new(&mut self.initial_condition[1]).speed(0.1));
+                    ui.end_row();
+                    ui.label("x0_theta [rad]:");
+                    ui.add(egui::DragValue::new(&mut self.initial_condition[2]).speed(0.1));
+                    ui.end_row();
+                    ui.label("x0_theta_dot [rad/s]:");
+                    ui.add(egui::DragValue::new(&mut self.initial_condition[3]).speed(0.1));
+                    ui.end_row();
+                });
+                
+                ui.separator();
 
                 // simulation time values
                 ui.add(egui::DragValue::new(&mut self.sim_time).speed(0.1).prefix("simulation duration: [s]: "));
