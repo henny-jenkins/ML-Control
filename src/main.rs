@@ -84,7 +84,7 @@ impl Default for MyApp {
             sim_time: 10.0,
             dt: 0.01,
             reference_signal: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
-            initial_condition: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
+            initial_condition: nalgebra::Vector4::new(-1f32, 0f32, 3.15f32, 0f32),
             population_size: 100,
             mutation_rate: 0.10,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
