@@ -1,5 +1,6 @@
 use eframe::egui;
 use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
+mod inverted_pendulum;
 
 fn main() -> Result<(), eframe::Error> {
     let native_options = eframe::NativeOptions::default();
