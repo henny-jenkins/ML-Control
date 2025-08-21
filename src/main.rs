@@ -1,9 +1,12 @@
-use eframe::egui;
+use eframe::{egui, self};
 use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
 mod inverted_pendulum;
 
 fn main() -> Result<(), eframe::Error> {
-    let native_options = eframe::NativeOptions::default();
+    let native_options = eframe::NativeOptions{
+        viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 1024.0]),
+        ..Default::default()
+    };
     eframe::run_native(
         "My egui App",
         native_options,
@@ -284,7 +287,7 @@ impl eframe::App for MyApp {
                         angle_plot.show(ui, |plot_ui| {
                             let line = Line::new(PlotPoints::from(self.angle_points.clone()));
                             if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Baseline"));
+                                plot_ui.line(line.name("LQR Solution"));
                             } else {
                                 plot_ui.line(line);
                             }
@@ -301,7 +304,7 @@ impl eframe::App for MyApp {
                         angle_vel_plot.show(ui, |plot_ui| {
                             let line = Line::new(PlotPoints::from(self.angle_vel_points.clone()));
                             if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Baseline"));
+                                plot_ui.line(line.name("LQR Solution"));
                             } else {
                                 plot_ui.line(line);
                             }
@@ -320,7 +323,7 @@ impl eframe::App for MyApp {
                         pos_plot.show(ui, |plot_ui| {
                             let line = Line::new(PlotPoints::from(self.pos_points.clone()));
                             if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Baseline"));
+                                plot_ui.line(line.name("LQR Solution"));
                             } else {
                                 plot_ui.line(line);
                             }
@@ -337,7 +340,7 @@ impl eframe::App for MyApp {
                         pos_vel_plot.show(ui, |plot_ui| {
                             let line = Line::new(PlotPoints::from(self.pos_vel_points.clone()));
                             if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Baseline"));
+                                plot_ui.line(line.name("LQR Solution"));
                             } else {
                                 plot_ui.line(line);
                             }
