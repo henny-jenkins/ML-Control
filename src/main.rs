@@ -24,7 +24,10 @@ struct MyApp {
 
     // GA Parameters
     population_size: usize,
-    mutation_rate: f32,
+    stochasticity: f32,
+    num_elitisim: i32,
+    search_space_lsl: i32,
+    search_space_usl: i32,
 
     // Pendulum Parameters
     params: inverted_pendulum::ModelParameters,
@@ -85,8 +88,11 @@ impl Default for MyApp {
             dt: 0.01,
             reference_signal: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
             initial_condition: nalgebra::Vector4::new(-1f32, 0f32, 3.15f32, 0f32),
-            population_size: 100,
-            mutation_rate: 0.10,
+            population_size: 25,
+            stochasticity: 250f32,
+            num_elitisim: 5i32,
+            search_space_lsl: -2000i32,
+            search_space_usl: 2000i32,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points,
             angle_points,
@@ -158,7 +164,10 @@ impl eframe::App for MyApp {
             ui.separator();
             ui.collapsing("Genetic Algorithm", |ui| {
                 ui.add(egui::DragValue::new(&mut self.population_size).prefix("Population Size: "));
-                ui.add(egui::Slider::new(&mut self.mutation_rate, 0.0..=1.0).text("Mutation Rate"));
+                ui.add(egui::Slider::new(&mut self.stochasticity, 0.0..=1000f32).text("Stochasticity"));
+                ui.add(egui::Slider::new(&mut self.num_elitisim, 0..=self.population_size as i32).text("Elitism"));
+                ui.add(egui::Slider::new(&mut self.search_space_lsl, -5000i32..=self.search_space_usl.min(5000i32)).text("Search Space Lower Bound"));
+                ui.add(egui::Slider::new(&mut self.search_space_usl, self.search_space_lsl.max(-5000i32)..=5000i32).text("Search Space Upper Bound"));
             });
             ui.separator();
             ui.collapsing("Pendulum Model", |ui| {

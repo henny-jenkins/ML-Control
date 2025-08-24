@@ -3,6 +3,13 @@
 - [x] implement simulation method (calls rk4)
 - [x] test dynamics & rk4 w/ LQR
 - [x] implement cost function for GA
-- [ ] implement GA
-    - [ ] does rk4/imulation method need early exit in case it's unstable?
+- [x] implement GA features
+    - [x] implement correct GUI controls for the GA
+        - [x] elitism
+        - [x] stochasticity
+        - [x] search space bounds
+    - [ ] write core GA function
+    - [ ] animate the cost plot and histograms
+    - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
+- [ ] publish to GitHub under public repo
 
