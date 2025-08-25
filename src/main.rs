@@ -1,5 +1,5 @@
 use eframe::{egui, self};
-use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
+use egui_plot::{Bar, BarChart, Line, Plot, PlotBounds, PlotPoints};
 use egui::Color32;
 mod inverted_pendulum;
 
@@ -265,14 +265,15 @@ impl eframe::App for MyApp {
                 ui.heading("Live GA Monitoring");
                 ui.separator();
                 ui.horizontal(|ui| {
-                    ui.label("Generation: 42");
-                    ui.label("Best Cost: 15.73");
-                    ui.label("Elapsed Time: 34s");
+                    ui.label(format!("Generation: {}", self.current_generation_num));
+                    ui.label("Best Cost: INSERT_BEST_COST_HERE");
+                    ui.label("Elapsed Time: INSERT_TOTAL_SIMULATION_TIME_HERE [s]");
                 });
 
                 ui.horizontal(|ui| {
                     // Cost Plot
                     ui.group(|ui| {
+
                         let cost_plot = Plot::new("cost_plot")
                             .x_axis_label("Generation")
                             .y_axis_label("Cost")
@@ -280,10 +281,38 @@ impl eframe::App for MyApp {
                             .height(300.0)
                             .legend(egui_plot::Legend::default());
                         cost_plot.show(ui, |plot_ui| {
-                            plot_ui.line(Line::new(PlotPoints::from(self.cost_points.clone())));
+                            let x_min = 0.0;
+                            let x_max = self.max_generations as f64;
 
+                            // Determine y bounds
+                            let (y_min, y_max) = if !self.cost_points.is_empty() {
+                                let mut y_min = self.cost_points.iter().map(|p| p[1]).fold(f64::INFINITY, f64::min);
+                                let mut y_max = self.cost_points.iter().map(|p| p[1]).fold(f64::NEG_INFINITY, f64::max);
+
+                                if self.lqr_data_available {
+                                    y_min = y_min.min(self.lqr_cost as f64);
+                                    y_max = y_max.max(self.lqr_cost as f64);
+                                }
+
+                                (y_min, y_max)
+                            } else if self.lqr_data_available {
+                                // Only LQR line exists
+                                let y = self.lqr_cost as f64;
+                                (y - 1.0, y + 1.0) // small range around LQR cost
+                            } else {
+                                (0.0, 1.0) // default bounds if nothing exists
+                            };
+
+                            plot_ui.set_plot_bounds(PlotBounds::from_min_max([x_min, y_min], [x_max, y_max]));
+
+                            // Plot GA cost
+                            if !self.cost_points.is_empty() {
+                                plot_ui.line(Line::new(PlotPoints::from(self.cost_points.clone())));
+                            }
+
+                            // Plot LQR cost
                             if self.lqr_data_available {
-                                let lqr_line = Line::new(vec![[0.0, self.lqr_cost as f64], [self.max_generations as f64, self.lqr_cost as f64]])
+                                let lqr_line = Line::new(vec![[0.0, self.lqr_cost as f64], [x_max, self.lqr_cost as f64]])
                                     .color(Color32::GOLD)
                                     .width(2.0)
                                     .name("LQR Cost");
