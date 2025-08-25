@@ -1,14 +1,20 @@
 use eframe::{egui, self};
 use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
+use egui::Color32;
 mod inverted_pendulum;
 
+fn run_ga(gui_data: &mut MyApp) {
+    // function to handle the evolution of a genetic algorithm
+    while !gui_data.stop_simulation_flag {
+        //
+    }
+}
 
 fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     mut cost_vals: Vec<f32>,
     prv_best_individual: nalgebra::Vector4<f32>,
     prv_best_cost: f32,
-    current_gen_num: usize,
-    gui_data: &MyApp) -> (Vec<nalgebra::Vector4<f32>>, Vec<f32>, f32) {
+    gui_data: &MyApp) -> (Vec<nalgebra::Vector4<f32>>, Vec<f32>, f32, nalgebra::Vector4<f32>) {
     // function to evolve the population of individuals by a single generation
     // prv_generation is ranked in order of fitness (first element is most fit)
 
@@ -46,7 +52,13 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     // identify the best individual and corresponding cost (?)
     let lowest_cost_this_gen: f32 = cost_vals.iter().cloned().fold(f32::INFINITY, |a, b| a.min(b));
     let best_cost: f32 = prv_best_cost.min(lowest_cost_this_gen);
-    return (next_generation, cost_vals, best_cost);
+    let mut best_individual = prv_best_individual;
+    if best_cost < prv_best_cost {
+        let best_idx: usize = cost_vals.iter().position(|&x| x == best_cost).unwrap();
+        best_individual = next_generation[best_idx];
+    }
+
+    return (next_generation, cost_vals, best_cost, best_individual);
 }
 
 fn main() -> Result<(), eframe::Error> {
@@ -73,6 +85,8 @@ struct MyApp {
     population_size: usize,
     stochasticity: f32,
     num_elitisim: usize,
+    current_generation_num: usize,
+    max_generations: usize,
     search_space_lsl: i32,
     search_space_usl: i32,
 
@@ -81,13 +95,15 @@ struct MyApp {
 
     // Dummy data for plots
     cost_points: Vec<[f64; 2]>,
+    lqr_cost: f32,
     angle_points: Vec<[f64; 2]>,
     angle_vel_points: Vec<[f64; 2]>,
     pos_points: Vec<[f64; 2]>,
     pos_vel_points: Vec<[f64; 2]>,
 
-    // LQR data flag
+    // application booleans
     lqr_data_available: bool,
+    stop_simulation_flag: bool
 }
 
 impl Default for MyApp {
@@ -138,15 +154,19 @@ impl Default for MyApp {
             population_size: 25,
             stochasticity: 250f32,
             num_elitisim: 5,
+            current_generation_num: 0,
+            max_generations: 1000,
             search_space_lsl: -2000i32,
             search_space_usl: 2000i32,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points,
+            lqr_cost: 0f32,
             angle_points,
             angle_vel_points,
             pos_points,
             pos_vel_points,
             lqr_data_available: false,
+            stop_simulation_flag: false,
         }
     }
 }
@@ -202,7 +222,7 @@ impl eframe::App for MyApp {
                 
                 ui.horizontal(|ui| {
                     if ui.button("Start GA").clicked() { /* Logic to start GA */ }
-                    if ui.button("Stop").clicked() { /* Logic to stop GA */ }
+                    if ui.button("Stop").clicked() { self.stop_simulation_flag = true; }
                     if ui.button("Test Function").clicked() {
                         println!("test function clicked");
                         let mut ind1 = nalgebra::Vector4::new(50f32, 100f32, 150f32, 200f32);
@@ -219,6 +239,7 @@ impl eframe::App for MyApp {
                 ui.add(egui::DragValue::new(&mut self.population_size).prefix("Population Size: "));
                 ui.add(egui::Slider::new(&mut self.stochasticity, 0.0..=1000f32).text("Stochasticity"));
                 ui.add(egui::Slider::new(&mut self.num_elitisim, 0..=self.population_size).text("Elitism"));
+                ui.add(egui::Slider::new(&mut self.max_generations, 0..=5000).text("Max Generations"));
                 ui.add(egui::Slider::new(&mut self.search_space_lsl, -5000i32..=self.search_space_usl.min(5000i32)).text("Search Space Lower Bound"));
                 ui.add(egui::Slider::new(&mut self.search_space_usl, self.search_space_lsl.max(-5000i32)..=5000i32).text("Search Space Upper Bound"));
             });
@@ -240,8 +261,7 @@ impl eframe::App for MyApp {
 
                     // calculate the cost of the LQR simulation
                     let wt_vec = nalgebra::Vector4::new(1f32, 0.01f32, 10f32, 5f32);
-                    let lqr_cost: f32 = inverted_pendulum::cost(&self.reference_signal, &sim_out, &wt_vec);
-                    println!("LQR Cost: {lqr_cost}");
+                    self.lqr_cost = inverted_pendulum::cost(&self.reference_signal, &sim_out, &wt_vec);
 
                     // plot the simulation
                     self.pos_points.clear();
@@ -287,9 +307,18 @@ impl eframe::App for MyApp {
                             .x_axis_label("Generation")
                             .y_axis_label("Cost")
                             .width(ui.available_width() * 0.6)
-                            .height(300.0);
+                            .height(300.0)
+                            .legend(egui_plot::Legend::default());
                         cost_plot.show(ui, |plot_ui| {
                             plot_ui.line(Line::new(PlotPoints::from(self.cost_points.clone())));
+
+                            if self.lqr_data_available {
+                                let lqr_line = Line::new(vec![[0.0, self.lqr_cost as f64], [self.max_generations as f64, self.lqr_cost as f64]])
+                                    .color(Color32::GOLD)
+                                    .width(2.0)
+                                    .name("LQR Cost");
+                                plot_ui.line(lqr_line);
+                            }
                         });
                     });
 
