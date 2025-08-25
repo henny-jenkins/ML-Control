@@ -156,6 +156,12 @@ impl eframe::App for MyApp {
                 ui.horizontal(|ui| {
                     if ui.button("Start GA").clicked() { /* Logic to start GA */ }
                     if ui.button("Stop").clicked() { /* Logic to stop GA */ }
+                    if ui.button("Test Function").clicked() {
+                        println!("test function clicked");
+                        let ind1 = nalgebra::Vector4::new(50f32, 100f32, 150f32, 200f32);
+                        let child = inverted_pendulum::mutate(&ind1, self.stochasticity);
+                        println!("{:?}", child);
+                    }
                     if ui.button("Reset").clicked() { 
                         *self = Self::default();
                     }

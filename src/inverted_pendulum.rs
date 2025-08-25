@@ -2,6 +2,8 @@
 // pendulum on a cart
 
 use nalgebra::Vector4;
+use rand::prelude::*;
+use rand_distr::{Normal, Distribution, WeightedIndex};
 
 pub struct ModelParameters(pub f32, pub f32, pub f32, pub f32);
 
@@ -130,11 +132,6 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     for array in simulation_output {
         let slice = &array[1..];    // pull out the last 4 values of each array
         // err = ref - x (do this for each state variable)
-        // load the error vectors
-        err_x.push(reference_signal[0] - slice[0]);
-        err_v.push(reference_signal[1] - slice[1]);
-        err_theta.push(reference_signal[2] - slice[2]);
-        err_theta_dot.push(reference_signal[3] - slice[3]);
         // load the error vectors, taking absolute value to get absolute error
         err_x.push((reference_signal[0] - slice[0]).abs());
         err_v.push((reference_signal[1] - slice[1]).abs());
@@ -153,3 +150,46 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     println!("total cost: {}", total_cost);
     return total_cost;
 }
+
+fn select(population: &[Vector4<f32>], cost_vals: &[f32]) -> (Vector4<f32>, Vector4<f32>) {
+    // function to select a pair of individuals from a population, based on cost values
+    
+    // invert cost values to contruct weighted distribution — need f64 because WeightedAliasIndex
+    // expects this
+    let cost_inverse: Vec<f64> = cost_vals.iter().map(|x| 1.0 / (*x as f64)).collect();
+    let dist = WeightedIndex::new(&cost_inverse).unwrap();
+    let mut rng = thread_rng();
+
+    // select two individuals from the population using weighted random selection
+    let idx1 = dist.sample(&mut rng);
+    let idx2 = dist.sample(&mut rng);
+    let result: (Vector4<f32>, Vector4<f32>) = (population[idx1], population[idx2]);
+    return result;
+}
+
+pub fn crossover(pair: &(Vector4<f32>, Vector4<f32>)) -> Vector4<f32> {
+    // function to average a pair of individuals
+    let a: Vector4<f32> = pair.0;
+    let b: Vector4<f32> = pair.1;
+    let child: Vector4<f32> = (a + b) / 2f32;
+    return child;
+}
+
+pub fn mutate(individual: &Vector4<f32>, stochasticity: f32) -> Vector4<f32> {
+    // function to mutate an individual based on the randomness specified by the genetic algorithm
+    let dist = Normal::new(0.0, stochasticity as f64).unwrap();    // construct normal distribution
+    Vector4::from_iterator(individual.iter().map(|x| x + (dist.sample(&mut thread_rng()) as f32)))
+}
+
+// pub fn evolution_stepper(prv_generation: &[Vector4<f32>],
+//     prv_best_individual: Vector4<f32>,
+//     prv_best_cost: f32,
+//     current_gen_num: usize,
+//     num_elitism: i32,
+//     population_size: usize,
+//     t_end: f32,
+//     stochasticity: f32,
+//     reference_state: Vector4<f32>,
+//     initial_state: Vector4<f32>) -> () {
+//     // function to evolve the population of individuals by a single generation
+// }

@@ -9,6 +9,14 @@
         - [x] stochasticity
         - [x] search space bounds
     - [ ] write core GA function
+        - [ ] select
+            - [ ] test
+        - [x] crossover
+            - [x] test
+        - [x] mutate
+            - [x] test
+        - [ ] evolve
+            - [ ] test
     - [ ] animate the cost plot and histograms
     - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
 - [ ] publish to GitHub under public repo
