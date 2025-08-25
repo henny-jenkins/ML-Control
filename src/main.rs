@@ -194,6 +194,7 @@ impl eframe::App for MyApp {
                     // calculate the cost of the LQR simulation
                     let wt_vec = nalgebra::Vector4::new(1f32, 0.01f32, 10f32, 5f32);
                     let lqr_cost: f32 = inverted_pendulum::cost(&self.reference_signal, &sim_out, &wt_vec);
+                    println!("LQR Cost: {lqr_cost}");
 
                     // plot the simulation
                     self.pos_points.clear();

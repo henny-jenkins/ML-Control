@@ -128,23 +128,26 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     let mut err_v = Vec::with_capacity(simulation_output.len());
     let mut err_theta = Vec::with_capacity(simulation_output.len());
     let mut err_theta_dot = Vec::with_capacity(simulation_output.len());
+    let mut time_vec = Vec::with_capacity(simulation_output.len());
 
     for array in simulation_output {
-        let slice = &array[1..];    // pull out the last 4 values of each array
+        let slice = &array;
         // err = ref - x (do this for each state variable)
         // load the error vectors, taking absolute value to get absolute error
-        err_x.push((reference_signal[0] - slice[0]).abs());
-        err_v.push((reference_signal[1] - slice[1]).abs());
-        err_theta.push((reference_signal[2] - slice[2]).abs());
-        err_theta_dot.push((reference_signal[3] - slice[3]).abs());
+        time_vec.push(slice[0]);
+        err_x.push((reference_signal[0] - slice[1]).abs()); // err in x
+        err_v.push((reference_signal[1] - slice[2]).abs()); // err in v
+        err_theta.push((reference_signal[2] - slice[3]).abs()); // err in theta
+        err_theta_dot.push((reference_signal[3] - slice[4]).abs()); //err in theta_dot
     }
 
     // use the error vectors with the weights to calculate cost
-    // sum the errors in the vector (lazy "integrate") and multiply by the weights
-    let cost_x: f32 = weight_vec[0] * err_x.iter().sum::<f32>();
-    let cost_v: f32 = weight_vec[1] * err_v.iter().sum::<f32>();
-    let cost_theta: f32 = weight_vec[2] * err_theta.iter().sum::<f32>();
-    let cost_theta_dot: f32 = weight_vec[3] * err_theta_dot.iter().sum::<f32>();
+    // weighted riemann sum
+    let dt: f32 = time_vec[1] - time_vec[0];
+    let cost_x: f32 = dt * weight_vec[0] * err_x.iter().sum::<f32>();
+    let cost_v: f32 = dt * weight_vec[1] * err_v.iter().sum::<f32>();
+    let cost_theta: f32 = dt * weight_vec[2] * err_theta.iter().sum::<f32>();
+    let cost_theta_dot: f32 = dt * weight_vec[3] * err_theta_dot.iter().sum::<f32>();
 
     let total_cost: f32 = cost_x + cost_v + cost_theta + cost_theta_dot;
     println!("total cost: {}", total_cost);
@@ -181,15 +184,15 @@ pub fn mutate(individual: &Vector4<f32>, stochasticity: f32) -> Vector4<f32> {
     Vector4::from_iterator(individual.iter().map(|x| x + (dist.sample(&mut thread_rng()) as f32)))
 }
 
-// pub fn evolution_stepper(prv_generation: &[Vector4<f32>],
-//     prv_best_individual: Vector4<f32>,
-//     prv_best_cost: f32,
-//     current_gen_num: usize,
-//     num_elitism: i32,
-//     population_size: usize,
-//     t_end: f32,
-//     stochasticity: f32,
-//     reference_state: Vector4<f32>,
-//     initial_state: Vector4<f32>) -> () {
-//     // function to evolve the population of individuals by a single generation
-// }
+pub fn evolution_stepper(prv_generation: &[Vector4<f32>],
+    prv_best_individual: Vector4<f32>,
+    prv_best_cost: f32,
+    current_gen_num: usize,
+    num_elitism: i32,
+    population_size: usize,
+    t_end: f32,
+    stochasticity: f32,
+    reference_state: Vector4<f32>,
+    initial_state: Vector4<f32>) -> () {
+    // function to evolve the population of individuals by a single generation
+}
