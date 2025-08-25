@@ -135,6 +135,11 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
         err_v.push(reference_signal[1] - slice[1]);
         err_theta.push(reference_signal[2] - slice[2]);
         err_theta_dot.push(reference_signal[3] - slice[3]);
+        // load the error vectors, taking absolute value to get absolute error
+        err_x.push((reference_signal[0] - slice[0]).abs());
+        err_v.push((reference_signal[1] - slice[1]).abs());
+        err_theta.push((reference_signal[2] - slice[2]).abs());
+        err_theta_dot.push((reference_signal[3] - slice[3]).abs());
     }
 
     // use the error vectors with the weights to calculate cost
