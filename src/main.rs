@@ -2,6 +2,53 @@ use eframe::{egui, self};
 use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
 mod inverted_pendulum;
 
+
+fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
+    mut cost_vals: Vec<f32>,
+    prv_best_individual: nalgebra::Vector4<f32>,
+    prv_best_cost: f32,
+    current_gen_num: usize,
+    gui_data: &MyApp) -> (Vec<nalgebra::Vector4<f32>>, Vec<f32>, f32) {
+    // function to evolve the population of individuals by a single generation
+    // prv_generation is ranked in order of fitness (first element is most fit)
+
+    // pull out GUI data
+    let num_elitism: &usize = &gui_data.num_elitisim;
+    let stochasticity: &f32 = &gui_data.stochasticity;
+    let initial_state: &nalgebra::Vector4<f32> = &gui_data.initial_condition;
+    let reference_state: &nalgebra::Vector4<f32> = &gui_data.reference_signal;
+    let t_end: &f32 = &gui_data.sim_time;
+    let dt: &f32 = &gui_data.dt;
+    let params: &inverted_pendulum::ModelParameters = &gui_data.params;
+
+    // define weight vector for cost function
+    let weight_vec = nalgebra::Vector4::new(1f32, 0.01f32, 10f32, 5f32);
+
+    // initialize the next generation as the previous generation
+    // elitism already handled, so determine the rest of the population
+    for i in (*num_elitism)..prv_generation.len() {
+        // select parents for ith individual
+        let parents: (nalgebra::Vector4<f32>, nalgebra::Vector4<f32>) = inverted_pendulum::select(&prv_generation, &cost_vals);
+        let mut child: nalgebra::Vector4<f32> = inverted_pendulum::crossover(&parents); // crossover
+        inverted_pendulum::mutate(&mut child, stochasticity); // mutate child
+        prv_generation[i] = child; // slot in next individual
+        // evaluate fitness
+        let child_performance: Vec<[f32; 5]> = inverted_pendulum::run_physics(&initial_state, &t_end, &dt, &child, &reference_state, &params);
+        let child_cost: f32 = inverted_pendulum::cost(&reference_state, &child_performance, &weight_vec);
+        cost_vals[i] = child_cost;  // slot in next individual's cost
+    }
+
+    // rank order the population in terms of cost
+    let mut paired: Vec<_> = prv_generation.iter().cloned().zip(cost_vals.iter().cloned()).collect();
+    paired.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    let (next_generation, cost_vals): (Vec<_>, Vec<_>) = paired.into_iter().unzip();
+
+    // identify the best individual and corresponding cost (?)
+    let lowest_cost_this_gen: f32 = cost_vals.iter().cloned().fold(f32::INFINITY, |a, b| a.min(b));
+    let best_cost: f32 = prv_best_cost.min(lowest_cost_this_gen);
+    return (next_generation, cost_vals, best_cost);
+}
+
 fn main() -> Result<(), eframe::Error> {
     let native_options = eframe::NativeOptions{
         viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 1024.0]),
@@ -25,7 +72,7 @@ struct MyApp {
     // GA Parameters
     population_size: usize,
     stochasticity: f32,
-    num_elitisim: i32,
+    num_elitisim: usize,
     search_space_lsl: i32,
     search_space_usl: i32,
 
@@ -90,7 +137,7 @@ impl Default for MyApp {
             initial_condition: nalgebra::Vector4::new(-1f32, 0f32, 3.15f32, 0f32),
             population_size: 25,
             stochasticity: 250f32,
-            num_elitisim: 5i32,
+            num_elitisim: 5,
             search_space_lsl: -2000i32,
             search_space_usl: 2000i32,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
@@ -158,9 +205,9 @@ impl eframe::App for MyApp {
                     if ui.button("Stop").clicked() { /* Logic to stop GA */ }
                     if ui.button("Test Function").clicked() {
                         println!("test function clicked");
-                        let ind1 = nalgebra::Vector4::new(50f32, 100f32, 150f32, 200f32);
-                        let child = inverted_pendulum::mutate(&ind1, self.stochasticity);
-                        println!("{:?}", child);
+                        let mut ind1 = nalgebra::Vector4::new(50f32, 100f32, 150f32, 200f32);
+                        inverted_pendulum::mutate(&mut ind1, &self.stochasticity);
+                        println!("{:?}", ind1);
                     }
                     if ui.button("Reset").clicked() { 
                         *self = Self::default();
@@ -171,7 +218,7 @@ impl eframe::App for MyApp {
             ui.collapsing("Genetic Algorithm", |ui| {
                 ui.add(egui::DragValue::new(&mut self.population_size).prefix("Population Size: "));
                 ui.add(egui::Slider::new(&mut self.stochasticity, 0.0..=1000f32).text("Stochasticity"));
-                ui.add(egui::Slider::new(&mut self.num_elitisim, 0..=self.population_size as i32).text("Elitism"));
+                ui.add(egui::Slider::new(&mut self.num_elitisim, 0..=self.population_size).text("Elitism"));
                 ui.add(egui::Slider::new(&mut self.search_space_lsl, -5000i32..=self.search_space_usl.min(5000i32)).text("Search Space Lower Bound"));
                 ui.add(egui::Slider::new(&mut self.search_space_usl, self.search_space_lsl.max(-5000i32)..=5000i32).text("Search Space Upper Bound"));
             });

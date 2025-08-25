@@ -154,7 +154,7 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     return total_cost;
 }
 
-fn select(population: &[Vector4<f32>], cost_vals: &[f32]) -> (Vector4<f32>, Vector4<f32>) {
+pub fn select(population: &Vec<Vector4<f32>>, cost_vals: &Vec<f32>) -> (Vector4<f32>, Vector4<f32>) {
     // function to select a pair of individuals from a population, based on cost values
     
     // invert cost values to contruct weighted distribution — need f64 because WeightedAliasIndex
@@ -178,21 +178,11 @@ pub fn crossover(pair: &(Vector4<f32>, Vector4<f32>)) -> Vector4<f32> {
     return child;
 }
 
-pub fn mutate(individual: &Vector4<f32>, stochasticity: f32) -> Vector4<f32> {
-    // function to mutate an individual based on the randomness specified by the genetic algorithm
-    let dist = Normal::new(0.0, stochasticity as f64).unwrap();    // construct normal distribution
-    Vector4::from_iterator(individual.iter().map(|x| x + (dist.sample(&mut thread_rng()) as f32)))
+pub fn mutate(individual: &mut Vector4<f32>, stochasticity: &f32) {
+    // function to mutate an individual in-place based on the randomness specified by the genetic algorithm
+    let dist = Normal::new(0.0, *stochasticity as f64).unwrap();    // construct normal distribution
+    for x in individual.iter_mut() {
+        *x += dist.sample(&mut thread_rng()) as f32;
+    }
 }
 
-pub fn evolution_stepper(prv_generation: &[Vector4<f32>],
-    prv_best_individual: Vector4<f32>,
-    prv_best_cost: f32,
-    current_gen_num: usize,
-    num_elitism: i32,
-    population_size: usize,
-    t_end: f32,
-    stochasticity: f32,
-    reference_state: Vector4<f32>,
-    initial_state: Vector4<f32>) -> () {
-    // function to evolve the population of individuals by a single generation
-}
