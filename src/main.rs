@@ -93,13 +93,17 @@ struct MyApp {
     // Pendulum Parameters
     params: inverted_pendulum::ModelParameters,
 
-    // Dummy data for plots
+    // plot data
     cost_points: Vec<[f64; 2]>,
     lqr_cost: f32,
     angle_points: Vec<[f64; 2]>,
     angle_vel_points: Vec<[f64; 2]>,
     pos_points: Vec<[f64; 2]>,
     pos_vel_points: Vec<[f64; 2]>,
+    pos_histo_points: Vec<Bar>,
+    vel_histo_points: Vec<Bar>,
+    angle_histo_points: Vec<Bar>,
+    angle_vel_histo_points: Vec<Bar>,
 
     // application booleans
     lqr_data_available: bool,
@@ -108,44 +112,6 @@ struct MyApp {
 
 impl Default for MyApp {
     fn default() -> Self {
-        // Generate some dummy data for the plots
-        let cost_points = (0..=50)
-            .map(|i| {
-                let x = i as f64;
-                // Simulate cost decreasing over generations
-                [x, 100.0 * (-x / 20.0).exp() + 10.0 * rand::random::<f64>()]
-            })
-            .collect();
-        
-        let angle_points: Vec<[f64; 2]> = (0..=200)
-            .map(|i| {
-                let t = i as f64 * 0.05;
-                // Simulate a damped sine wave for the pendulum angle
-                [t, 0.5 * (2.0 * t).cos() * (-t * 0.5).exp()]
-            })
-            .collect();
-
-        // Dummy data for angular velocity (derivative of angle)
-        let angle_vel_points: Vec<[f64; 2]> = angle_points.windows(2).map(|p| {
-            let t0 = p[0][0];
-            let y0 = p[0][1];
-            let t1 = p[1][0];
-            let y1 = p[1][1];
-            [t0, (y1 - y0) / (t1 - t0)]
-        }).collect();
-
-        // Dummy data for position
-        let pos_points: Vec<[f64; 2]> = angle_points.iter().map(|p| [p[0], p[1].sin() * 0.2]).collect();
-
-        // Dummy data for position velocity
-        let pos_vel_points: Vec<[f64; 2]> = pos_points.windows(2).map(|p| {
-            let t0 = p[0][0];
-            let y0 = p[0][1];
-            let t1 = p[1][0];
-            let y1 = p[1][1];
-            [t0, (y1 - y0) / (t1 - t0)]
-        }).collect();
-
         Self {
             sim_time: 10.0,
             dt: 0.01,
@@ -159,12 +125,16 @@ impl Default for MyApp {
             search_space_lsl: -2000i32,
             search_space_usl: 2000i32,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
-            cost_points,
+            cost_points: Vec::new(),
             lqr_cost: 0f32,
-            angle_points,
-            angle_vel_points,
-            pos_points,
-            pos_vel_points,
+            angle_points: Vec::new(),
+            angle_vel_points: Vec::new(),
+            pos_points: Vec::new(),
+            pos_vel_points: Vec::new(),
+            pos_histo_points: Vec::new(),
+            vel_histo_points: Vec::new(),
+            angle_histo_points: Vec::new(),
+            angle_vel_histo_points: Vec::new(),
             lqr_data_available: false,
             stop_simulation_flag: false,
         }
@@ -331,8 +301,7 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .show_y(false);
                         gain_hist.show(ui, |plot_ui| {
-                            let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i) as f64 / 10.0).exp() * 20.0)).collect();
-                            plot_ui.bar_chart(BarChart::new(bars));
+                            plot_ui.bar_chart(BarChart::new(self.pos_histo_points.clone()));
                         });
 
                         let gain_hist_2 = Plot::new("gain_2_hist")
@@ -341,8 +310,7 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .show_y(false);
                         gain_hist_2.show(ui, |plot_ui| {
-                            let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i-2*i) as f64 / 8.0).exp() * 15.0)).collect();
-                            plot_ui.bar_chart(BarChart::new(bars));
+                            plot_ui.bar_chart(BarChart::new(self.vel_histo_points.clone()));
                         });
 
                         let gain_hist_3 = Plot::new("gain_3_hist")
@@ -351,8 +319,7 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .show_y(false);
                         gain_hist_3.show(ui, |plot_ui| {
-                            let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i+i) as f64 / 12.0).exp() * 18.0)).collect();
-                            plot_ui.bar_chart(BarChart::new(bars));
+                            plot_ui.bar_chart(BarChart::new(self.angle_histo_points.clone()));
                         });
 
                         let gain_hist_4 = Plot::new("gain_4_hist")
@@ -361,8 +328,7 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .show_y(false);
                         gain_hist_4.show(ui, |plot_ui| {
-                            let bars: Vec<Bar> = (-5..=5).map(|i| Bar::new(i as f64, (-(i*i-3*i) as f64 / 9.0).exp() * 22.0)).collect();
-                            plot_ui.bar_chart(BarChart::new(bars));
+                            plot_ui.bar_chart(BarChart::new(self.angle_vel_histo_points.clone()));
                         });
                     });
                 });
