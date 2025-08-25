@@ -385,7 +385,8 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         angle_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.angle_points.clone()));
+                            let line = Line::new(PlotPoints::from(self.angle_points.clone()))
+                                .color(Color32::GOLD);
                             if self.lqr_data_available {
                                 plot_ui.line(line.name("LQR Solution"));
                             } else {
@@ -402,7 +403,8 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         angle_vel_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.angle_vel_points.clone()));
+                            let line = Line::new(PlotPoints::from(self.angle_vel_points.clone()))
+                                .color(Color32::GOLD);
                             if self.lqr_data_available {
                                 plot_ui.line(line.name("LQR Solution"));
                             } else {
@@ -421,7 +423,8 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         pos_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.pos_points.clone()));
+                            let line = Line::new(PlotPoints::from(self.pos_points.clone()))
+                                .color(Color32::GOLD);
                             if self.lqr_data_available {
                                 plot_ui.line(line.name("LQR Solution"));
                             } else {
@@ -438,7 +441,8 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         pos_vel_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.pos_vel_points.clone()));
+                            let line = Line::new(PlotPoints::from(self.pos_vel_points.clone()))
+                                .color(Color32::GOLD);
                             if self.lqr_data_available {
                                 plot_ui.line(line.name("LQR Solution"));
                             } else {
