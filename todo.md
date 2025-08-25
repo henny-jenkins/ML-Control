@@ -9,8 +9,7 @@
         - [x] stochasticity
         - [x] search space bounds
     - [ ] write core GA function
-        - [ ] select
-            - [ ] test
+        - [x] select
         - [x] crossover
             - [x] test
         - [x] mutate
