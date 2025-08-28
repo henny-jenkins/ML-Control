@@ -16,6 +16,10 @@
             - [x] test
         - [ ] evolve
             - [ ] test
+        - [x] generate popoualtion
+            - [x] generate individual
+                - [x] test
+            - [x] test
     - [ ] animate the cost plot and histograms
     - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
 - [ ] publish to GitHub under public repo

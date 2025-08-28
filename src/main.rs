@@ -3,18 +3,9 @@ use egui_plot::{Bar, BarChart, Line, Plot, PlotBounds, PlotPoints};
 use egui::Color32;
 mod inverted_pendulum;
 
-fn run_ga(gui_data: &mut MyApp) {
-    // function to handle the evolution of a genetic algorithm
-    while !gui_data.stop_simulation_flag {
-        //
-    }
-}
-
 fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     mut cost_vals: Vec<f32>,
-    prv_best_individual: nalgebra::Vector4<f32>,
-    prv_best_cost: f32,
-    gui_data: &MyApp) -> (Vec<nalgebra::Vector4<f32>>, Vec<f32>, f32, nalgebra::Vector4<f32>) {
+    gui_data: &MyApp) -> (Vec<nalgebra::Vector4<f32>>, Vec<f32>) {
     // function to evolve the population of individuals by a single generation
     // prv_generation is ranked in order of fitness (first element is most fit)
 
@@ -49,16 +40,7 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     paired.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
     let (next_generation, cost_vals): (Vec<_>, Vec<_>) = paired.into_iter().unzip();
 
-    // identify the best individual and corresponding cost (?)
-    let lowest_cost_this_gen: f32 = cost_vals.iter().cloned().fold(f32::INFINITY, |a, b| a.min(b));
-    let best_cost: f32 = prv_best_cost.min(lowest_cost_this_gen);
-    let mut best_individual = prv_best_individual;
-    if best_cost < prv_best_cost {
-        let best_idx: usize = cost_vals.iter().position(|&x| x == best_cost).unwrap();
-        best_individual = next_generation[best_idx];
-    }
-
-    return (next_generation, cost_vals, best_cost, best_individual);
+    return (next_generation, cost_vals);
 }
 
 fn main() -> Result<(), eframe::Error> {
@@ -90,6 +72,10 @@ struct MyApp {
     search_space_lsl: i32,
     search_space_usl: i32,
 
+    // GA state of current generation
+    current_population_sorted: Option<Vec<nalgebra::Vector4<f32>>>,
+    current_costs_sorted: Option<Vec<f32>>,
+
     // Pendulum Parameters
     params: inverted_pendulum::ModelParameters,
 
@@ -107,7 +93,7 @@ struct MyApp {
 
     // application booleans
     lqr_data_available: bool,
-    stop_simulation_flag: bool
+    ga_running: bool
 }
 
 impl Default for MyApp {
@@ -124,6 +110,8 @@ impl Default for MyApp {
             max_generations: 1000,
             search_space_lsl: -2000i32,
             search_space_usl: 2000i32,
+            current_population_sorted: None,
+            current_costs_sorted: None,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points: Vec::new(),
             lqr_cost: 0f32,
@@ -136,7 +124,7 @@ impl Default for MyApp {
             angle_histo_points: Vec::new(),
             angle_vel_histo_points: Vec::new(),
             lqr_data_available: false,
-            stop_simulation_flag: false,
+            ga_running: false,
         }
     }
 }
@@ -144,6 +132,22 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_visuals(egui::Visuals::dark());
+
+        // code to evolve the GA if appropriate
+        if self.ga_running && (self.current_generation_num < self.max_generations) {
+            // evolve the next generation
+         // run ONE generation per frame
+            if let (Some(pop), Some(costs)) = (self.current_population_sorted.take(), self.current_costs_sorted.take()) {
+                let (next_gen, next_costs) = evolve(pop, costs, self);
+
+                self.current_generation_num += 1;
+
+                // update the GUI and app state
+                self.cost_points.push([self.current_generation_num as f64, next_costs[0] as f64]);
+                self.current_population_sorted = Some(next_gen);
+                self.current_costs_sorted = Some(next_costs);
+            }
+        }
 
         // --- Side Panel for Configuration ---
         egui::SidePanel::left("config_panel").show(ctx, |ui| {
@@ -191,13 +195,62 @@ impl eframe::App for MyApp {
                 ui.add(egui::DragValue::new(&mut self.dt).speed(0.1).prefix("simulation dt: [s]: "));
                 
                 ui.horizontal(|ui| {
-                    if ui.button("Start GA").clicked() { /* Logic to start GA */ }
-                    if ui.button("Stop").clicked() { self.stop_simulation_flag = true; }
+                    if ui.button("Start GA").clicked() {
+                        self.ga_running = true;
+                        self.current_generation_num = 0;
+                        self.cost_points.clear();
+
+                        // pull out algorithm config from GUI data
+                        let initial_condition = self.initial_condition;
+                        let sim_time = self.sim_time;
+                        let dt = self.dt;
+                        let reference_signal = self.reference_signal;
+                        let params = &self.params;
+
+                        // define some other important variables for the simulation
+                        let weight_vec = nalgebra::Vector4::new(1f32, 0.01f32, 10f32, 5f32);
+
+                        // initialize the first population and cost vector
+                        let mut init_generation: Vec<nalgebra::Vector4<f32>> = inverted_pendulum::generate_population(
+                            self.population_size,
+                            self.search_space_lsl,
+                            self.search_space_usl);
+                        let mut cost_vals: Vec<f32> = Vec::with_capacity(self.population_size);
+
+                        // evaluate the first population
+                        for i in 0..self.population_size {
+                            // run physics for each individual
+                            let individual_performance: Vec<[f32; 5]> = inverted_pendulum::run_physics(
+                                &initial_condition,
+                                &sim_time,
+                                &dt,
+                                &init_generation[i],
+                                &reference_signal,
+                                params);
+                            // calculate cost for each individual
+                            cost_vals.push(inverted_pendulum::cost(
+                                &reference_signal,
+                                &individual_performance,
+                                &weight_vec));
+                        }
+                        println!("simulated initial generation");
+                        self.current_generation_num += 1;
+                        
+                        // sort (ascending) the first population in terms of cost
+                        let mut paired: Vec<_> = init_generation.iter().cloned().zip(cost_vals.iter().cloned()).collect();
+                        paired.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+                        (init_generation, cost_vals) = paired.into_iter().unzip();
+
+                        // update the GUI and app state
+                        self.cost_points.push([self.current_generation_num as f64, cost_vals[0] as f64]);
+                        self.current_population_sorted = Some(init_generation);
+                        self.current_costs_sorted = Some(cost_vals);
+                    }
+
+                    if ui.button("Stop").clicked() { self.ga_running = false; }
                     if ui.button("Test Function").clicked() {
                         println!("test function clicked");
-                        let mut ind1 = nalgebra::Vector4::new(50f32, 100f32, 150f32, 200f32);
-                        inverted_pendulum::mutate(&mut ind1, &self.stochasticity);
-                        println!("{:?}", ind1);
+                        let population = inverted_pendulum::generate_population(self.population_size, self.search_space_lsl, self.search_space_usl);
                     }
                     if ui.button("Reset").clicked() { 
                         *self = Self::default();
