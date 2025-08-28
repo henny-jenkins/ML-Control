@@ -90,10 +90,14 @@ struct MyApp {
     // plot data
     cost_points: Vec<[f64; 2]>,
     lqr_cost: f32,
+    lqr_angle_points: Vec<[f64; 2]>,
+    lqr_angle_vel_points: Vec<[f64; 2]>,
+    lqr_pos_points: Vec<[f64; 2]>,
+    lqr_vel_points: Vec<[f64; 2]>,
     angle_points: Vec<[f64; 2]>,
     angle_vel_points: Vec<[f64; 2]>,
     pos_points: Vec<[f64; 2]>,
-    pos_vel_points: Vec<[f64; 2]>,
+    vel_points: Vec<[f64; 2]>,
     pos_histo_points: Vec<Bar>,
     vel_histo_points: Vec<Bar>,
     angle_histo_points: Vec<Bar>,
@@ -127,10 +131,14 @@ impl Default for MyApp {
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points: Vec::new(),
             lqr_cost: 0f32,
+            lqr_angle_points: Vec::new(),
+            lqr_angle_vel_points: Vec::new(),
+            lqr_pos_points: Vec::new(),
+            lqr_vel_points: Vec::new(),
             angle_points: Vec::new(),
             angle_vel_points: Vec::new(),
             pos_points: Vec::new(),
-            pos_vel_points: Vec::new(),
+            vel_points: Vec::new(),
             pos_histo_points: Vec::new(),
             vel_histo_points: Vec::new(),
             angle_histo_points: Vec::new(),
@@ -159,6 +167,32 @@ impl eframe::App for MyApp {
                 */
                 self.best_cost = next_costs[0];
                 self.best_individual = Some(next_gen[0]);
+
+                let best_simulation_output = inverted_pendulum::run_physics(&self.initial_condition,
+                    &self.sim_time,
+                    &self.dt,
+                    &next_gen[0],
+                    &self.reference_signal,
+                    &self.params);
+
+                // pull out the simulation output and assign to app state
+                let mut x_pts = Vec::with_capacity(best_simulation_output.len());
+                let mut v_pts = Vec::with_capacity(best_simulation_output.len());
+                let mut theta_pts = Vec::with_capacity(best_simulation_output.len());
+                let mut theta_dot_pts = Vec::with_capacity(best_simulation_output.len());
+                for array in best_simulation_output {
+                    // load the state vectors
+                    let slice = &array;
+                    let current_time = slice[0];
+                    x_pts.push([current_time as f64, slice[1] as f64]);
+                    v_pts.push([current_time as f64, slice[2] as f64]);
+                    theta_pts.push([current_time as f64, slice[3] as f64]);
+                    theta_dot_pts.push([current_time as f64, slice[4] as f64]);
+                }
+                self.pos_points = x_pts;
+                self.vel_points = v_pts;
+                self.angle_points = theta_pts;
+                self.angle_vel_points = theta_dot_pts;
 
                 self.cost_points.push([self.current_generation_num as f64, self.best_cost as f64]);
                 self.current_population_sorted = Some(next_gen);
@@ -307,22 +341,22 @@ impl eframe::App for MyApp {
                     self.lqr_cost = inverted_pendulum::cost(&self.reference_signal, &sim_out, &wt_vec);
 
                     // plot the simulation
-                    self.pos_points.clear();
-                    self.pos_vel_points.clear();
-                    self.angle_points.clear();
-                    self.angle_vel_points.clear();
+                    self.lqr_pos_points.clear();
+                    self.lqr_vel_points.clear();
+                    self.lqr_angle_points.clear();
+                    self.lqr_angle_vel_points.clear();
 
                     for data_point in sim_out {
                         let time = data_point[0] as f64;
                         let pos = data_point[1] as f64;
-                        let pos_vel = data_point[2] as f64;
+                        let vel = data_point[2] as f64;
                         let angle = data_point[3] as f64;
                         let angle_vel = data_point[4] as f64;
 
-                        self.pos_points.push([time, pos]);
-                        self.pos_vel_points.push([time, pos_vel]);
-                        self.angle_points.push([time, angle]);
-                        self.angle_vel_points.push([time, angle_vel]);
+                        self.lqr_pos_points.push([time, pos]);
+                        self.lqr_vel_points.push([time, vel]);
+                        self.lqr_angle_points.push([time, angle]);
+                        self.lqr_angle_vel_points.push([time, angle_vel]);
                     }
                     self.lqr_data_available = true;
                 }
@@ -453,12 +487,20 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         angle_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.angle_points.clone()))
+                            let lqr_line = Line::new(PlotPoints::from(self.lqr_angle_points.clone()))
                                 .color(Color32::GOLD);
-                            if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Solution"));
+                            let ga_line = Line::new(PlotPoints::from(self.angle_points.clone()))
+                                .color(Color32::RED);
+
+                            if self.best_individual.is_some() {
+                                plot_ui.line(ga_line.name("GA Solution"));
                             } else {
-                                plot_ui.line(line);
+                                plot_ui.line(ga_line);
+                            }
+                            if self.lqr_data_available {
+                                plot_ui.line(lqr_line.name("LQR Solution"));
+                            } else {
+                                plot_ui.line(lqr_line);
                             }
                         });
                     });
@@ -471,12 +513,20 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         angle_vel_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.angle_vel_points.clone()))
+                            let lqr_line = Line::new(PlotPoints::from(self.lqr_angle_vel_points.clone()))
                                 .color(Color32::GOLD);
-                            if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Solution"));
+                            let ga_line = Line::new(PlotPoints::from(self.angle_vel_points.clone()))
+                                .color(Color32::RED);
+
+                            if self.best_individual.is_some() {
+                                plot_ui.line(ga_line.name("GA Solution"));
                             } else {
-                                plot_ui.line(line);
+                                plot_ui.line(ga_line);
+                            }
+                            if self.lqr_data_available {
+                                plot_ui.line(lqr_line.name("LQR Solution"));
+                            } else {
+                                plot_ui.line(lqr_line);
                             }
                         });
                     });
@@ -491,12 +541,20 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         pos_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.pos_points.clone()))
+                            let lqr_pos_line = Line::new(PlotPoints::from(self.lqr_pos_points.clone()))
                                 .color(Color32::GOLD);
-                            if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Solution"));
+                            let ga_line = Line::new(PlotPoints::from(self.pos_points.clone()))
+                                .color(Color32::RED);
+
+                            if self.best_individual.is_some() {
+                                plot_ui.line(ga_line.name("GA Solution"));
                             } else {
-                                plot_ui.line(line);
+                                plot_ui.line(ga_line);
+                            }
+                            if self.lqr_data_available {
+                                plot_ui.line(lqr_pos_line.name("LQR Solution"));
+                            } else {
+                                plot_ui.line(lqr_pos_line);
                             }
                         });
                     });
@@ -509,12 +567,20 @@ impl eframe::App for MyApp {
                             .show_x(true)
                             .legend(egui_plot::Legend::default());
                         pos_vel_plot.show(ui, |plot_ui| {
-                            let line = Line::new(PlotPoints::from(self.pos_vel_points.clone()))
+                            let lqr_line_vel = Line::new(PlotPoints::from(self.lqr_vel_points.clone()))
                                 .color(Color32::GOLD);
-                            if self.lqr_data_available {
-                                plot_ui.line(line.name("LQR Solution"));
+                            let ga_line = Line::new(PlotPoints::from(self.vel_points.clone()))
+                                .color(Color32::RED);
+
+                            if self.best_individual.is_some() {
+                                plot_ui.line(ga_line.name("GA Solution"));
                             } else {
-                                plot_ui.line(line);
+                                plot_ui.line(ga_line);
+                            }
+                            if self.lqr_data_available {
+                                plot_ui.line(lqr_line_vel.name("LQR Solution"));
+                            } else {
+                                plot_ui.line(lqr_line_vel);
                             }
                         });
                     });
