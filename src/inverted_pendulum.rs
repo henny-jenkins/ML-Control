@@ -118,7 +118,6 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     });
 
     if exceeds_threshold {
-        println!("simulation exceeds thresholds of valid state values");
         // if the simulation is unstable, return the kill cost
         return kill_cost;
     }
@@ -150,7 +149,6 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     let cost_theta_dot: f32 = dt * weight_vec[3] * err_theta_dot.iter().sum::<f32>();
 
     let total_cost: f32 = cost_x + cost_v + cost_theta + cost_theta_dot;
-    println!("total cost: {}", total_cost);
     return total_cost;
 }
 

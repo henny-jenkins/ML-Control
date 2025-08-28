@@ -32,6 +32,9 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
         // evaluate fitness
         let child_performance: Vec<[f32; 5]> = inverted_pendulum::run_physics(&initial_state, &t_end, &dt, &child, &reference_state, &params);
         let child_cost: f32 = inverted_pendulum::cost(&reference_state, &child_performance, &weight_vec);
+        // if child_cost == 1000f32 {
+        //     println!("invalid state values detected for individual: {}", child);
+        // }
         cost_vals[i] = child_cost;  // slot in next individual's cost
     }
 
@@ -135,11 +138,9 @@ impl eframe::App for MyApp {
 
         // code to evolve the GA if appropriate
         if self.ga_running && (self.current_generation_num < self.max_generations) {
-            // evolve the next generation
-         // run ONE generation per frame
+            // evolve the next generation for the next frame
             if let (Some(pop), Some(costs)) = (self.current_population_sorted.take(), self.current_costs_sorted.take()) {
                 let (next_gen, next_costs) = evolve(pop, costs, self);
-
                 self.current_generation_num += 1;
 
                 // update the GUI and app state
@@ -247,10 +248,8 @@ impl eframe::App for MyApp {
                         self.current_costs_sorted = Some(cost_vals);
                     }
 
-                    if ui.button("Stop").clicked() { self.ga_running = false; }
-                    if ui.button("Test Function").clicked() {
-                        println!("test function clicked");
-                        let population = inverted_pendulum::generate_population(self.population_size, self.search_space_lsl, self.search_space_usl);
+                    if ui.button("Stop").clicked() {
+                        self.ga_running = false;
                     }
                     if ui.button("Reset").clicked() { 
                         *self = Self::default();
