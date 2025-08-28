@@ -21,7 +21,7 @@
                 - [x] test
             - [x] test
     - [x] live update cost plot
-    - [ ] live update of best individual performance
+    - [x] live update of best individual performance
     - [ ] lock GUI widgets during simulation
     - [ ] animate histograms
     - [ ] answer: does rk4/imulation method need early exit in case it's unstable?

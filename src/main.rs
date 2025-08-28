@@ -59,7 +59,6 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
-// We derive Deserialize/Serialize so we can persist app state on shutdown.
 struct MyApp {
     // Simulation Parameters
     sim_time: f32,
@@ -130,7 +129,7 @@ impl Default for MyApp {
             elapsed_sim_time: 0f32,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points: Vec::new(),
-            lqr_cost: 0f32,
+            lqr_cost: f32::INFINITY,
             lqr_angle_points: Vec::new(),
             lqr_angle_vel_points: Vec::new(),
             lqr_pos_points: Vec::new(),
@@ -289,7 +288,6 @@ impl eframe::App for MyApp {
                                 &individual_performance,
                                 &weight_vec));
                         }
-                        println!("simulated initial generation");
                         self.current_generation_num += 1;
                         
                         // sort (ascending) the first population in terms of cost
@@ -373,7 +371,8 @@ impl eframe::App for MyApp {
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label(format!("Generation: {}", self.current_generation_num));
-                    ui.label(format!("Best Cost: {}", self.best_cost));
+                    ui.label(format!("Best GA Cost: {}", self.best_cost));
+                    ui.label(format!("LQR Cost: {}", self.lqr_cost));
                     ui.label(format!("Elapsed Time: {} [s]", self.elapsed_sim_time));
                 });
 
