@@ -1,3 +1,4 @@
+use std::time::Instant;
 use eframe::{egui, self};
 use egui_plot::{Bar, BarChart, Line, Plot, PlotBounds, PlotPoints};
 use egui::Color32;
@@ -65,6 +66,7 @@ struct MyApp {
     dt: f32,
     reference_signal: nalgebra::Vector4<f32>,
     initial_condition: nalgebra::Vector4<f32>,
+    start_sim_time: Option<Instant>,
 
     // GA Parameters
     population_size: usize,
@@ -78,6 +80,9 @@ struct MyApp {
     // GA state of current generation
     current_population_sorted: Option<Vec<nalgebra::Vector4<f32>>>,
     current_costs_sorted: Option<Vec<f32>>,
+    best_cost: f32,
+    best_individual: Option<nalgebra::Vector4<f32>>,
+    elapsed_sim_time: f32,
 
     // Pendulum Parameters
     params: inverted_pendulum::ModelParameters,
@@ -106,6 +111,7 @@ impl Default for MyApp {
             dt: 0.01,
             reference_signal: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
             initial_condition: nalgebra::Vector4::new(-1f32, 0f32, 3.15f32, 0f32),
+            start_sim_time: None,
             population_size: 25,
             stochasticity: 250f32,
             num_elitisim: 5,
@@ -115,6 +121,9 @@ impl Default for MyApp {
             search_space_usl: 2000i32,
             current_population_sorted: None,
             current_costs_sorted: None,
+            best_cost: f32::INFINITY,
+            best_individual: None,
+            elapsed_sim_time: 0f32,
             params: inverted_pendulum::ModelParameters(1f32, 5f32, 2f32, 1f32),
             cost_points: Vec::new(),
             lqr_cost: 0f32,
@@ -142,11 +151,22 @@ impl eframe::App for MyApp {
             if let (Some(pop), Some(costs)) = (self.current_population_sorted.take(), self.current_costs_sorted.take()) {
                 let (next_gen, next_costs) = evolve(pop, costs, self);
                 self.current_generation_num += 1;
-
+                
                 // update the GUI and app state
-                self.cost_points.push([self.current_generation_num as f64, next_costs[0] as f64]);
+                /*
+                 * elitism is always positive integer, so the best global individual & cost will always be in the
+                 * current generation — the algorithm will never regress in performance
+                */
+                self.best_cost = next_costs[0];
+                self.best_individual = Some(next_gen[0]);
+
+                self.cost_points.push([self.current_generation_num as f64, self.best_cost as f64]);
                 self.current_population_sorted = Some(next_gen);
                 self.current_costs_sorted = Some(next_costs);
+                if let Some(local_instant) = self.start_sim_time.take() {
+                    self.elapsed_sim_time += local_instant.elapsed().as_secs_f32();
+                    self.start_sim_time = Some(Instant::now());
+                }
             }
         }
 
@@ -200,6 +220,7 @@ impl eframe::App for MyApp {
                         self.ga_running = true;
                         self.current_generation_num = 0;
                         self.cost_points.clear();
+                        self.start_sim_time = Some(Instant::now());
 
                         // pull out algorithm config from GUI data
                         let initial_condition = self.initial_condition;
@@ -260,7 +281,7 @@ impl eframe::App for MyApp {
             ui.collapsing("Genetic Algorithm", |ui| {
                 ui.add(egui::DragValue::new(&mut self.population_size).prefix("Population Size: "));
                 ui.add(egui::Slider::new(&mut self.stochasticity, 0.0..=1000f32).text("Stochasticity"));
-                ui.add(egui::Slider::new(&mut self.num_elitisim, 0..=self.population_size).text("Elitism"));
+                ui.add(egui::Slider::new(&mut self.num_elitisim, 1..=self.population_size).text("Elitism"));
                 ui.add(egui::Slider::new(&mut self.max_generations, 0..=5000).text("Max Generations"));
                 ui.add(egui::Slider::new(&mut self.search_space_lsl, -5000i32..=self.search_space_usl.min(5000i32)).text("Search Space Lower Bound"));
                 ui.add(egui::Slider::new(&mut self.search_space_usl, self.search_space_lsl.max(-5000i32)..=5000i32).text("Search Space Upper Bound"));
@@ -318,8 +339,8 @@ impl eframe::App for MyApp {
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label(format!("Generation: {}", self.current_generation_num));
-                    ui.label("Best Cost: INSERT_BEST_COST_HERE");
-                    ui.label("Elapsed Time: INSERT_TOTAL_SIMULATION_TIME_HERE [s]");
+                    ui.label(format!("Best Cost: {}", self.best_cost));
+                    ui.label(format!("Elapsed Time: {} [s]", self.elapsed_sim_time));
                 });
 
                 ui.horizontal(|ui| {

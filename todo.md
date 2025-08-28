@@ -8,19 +8,22 @@
         - [x] elitism
         - [x] stochasticity
         - [x] search space bounds
-    - [ ] write core GA function
+    - [x] write core GA function
         - [x] select
         - [x] crossover
             - [x] test
         - [x] mutate
             - [x] test
-        - [ ] evolve
-            - [ ] test
+        - [x] evolve
+            - [x] test
         - [x] generate popoualtion
             - [x] generate individual
                 - [x] test
             - [x] test
-    - [ ] animate the cost plot and histograms
+    - [x] live update cost plot
+    - [ ] live update of best individual performance
+    - [ ] lock GUI widgets during simulation
+    - [ ] animate histograms
     - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
 - [ ] publish to GitHub under public repo
 
