@@ -2,8 +2,8 @@
 // pendulum on a cart
 
 use nalgebra::Vector4;
-use rand::prelude::*;
-use rand_distr::{Normal, Distribution, WeightedIndex};
+use rand::thread_rng;
+use rand_distr::{Normal, Distribution, WeightedIndex, Uniform};
 
 pub struct ModelParameters(pub f32, pub f32, pub f32, pub f32);
 
@@ -184,5 +184,30 @@ pub fn mutate(individual: &mut Vector4<f32>, stochasticity: &f32) {
     for x in individual.iter_mut() {
         *x += dist.sample(&mut thread_rng()) as f32;
     }
+}
+
+pub fn generate_individual(lsl: i32, usl: i32) -> Vector4<f32> {
+    // function to generate a random individual from a bounded uniform distribution
+    let dist = Uniform::new(lsl as f32, usl as f32);
+    let mut rng = thread_rng();
+    let individual = Vector4::new(
+        dist.sample(&mut rng),
+        dist.sample(&mut rng),
+        dist.sample(&mut rng),
+        dist.sample(&mut rng)
+    );
+    return individual;
+}
+
+pub fn generate_population(population_size: usize,
+    // function to generate an population of individuals within a range
+    lsl: i32,
+    usl: i32) -> Vec<Vector4<f32>> {
+    let mut population: Vec<Vector4<f32>> = Vec::with_capacity(population_size);
+    for _i in 0..population_size {
+        let individual: Vector4<f32> = generate_individual(lsl, usl);
+        population.push(individual);
+    }
+    return population;
 }
 
