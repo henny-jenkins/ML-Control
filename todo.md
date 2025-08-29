@@ -26,4 +26,7 @@
     - [ ] animate histograms
     - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
 - [ ] publish to GitHub under public repo
+- [ ] fix bugs
+    - [ ] random crashes
+    - [ ] when simulation finishes, if it starts again the elapsed simulation duration is not correct
 
