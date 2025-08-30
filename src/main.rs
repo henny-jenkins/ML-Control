@@ -634,6 +634,7 @@ impl eframe::App for MyApp {
                 });
             });
         });
+        ctx.request_repaint();  // redraw the window even if idle
     }
 }
 

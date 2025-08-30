@@ -28,6 +28,8 @@
     - [x] random crashes
     - [x] when simulation finishes, if it starts again the elapsed simulation duration is not correct
     - [x] search space bounds not working
-- [ ] make performance updates — specifically fix freezing UI during simulation
+- [x] make performance updates — specifically fix freezing UI during simulation
+- [ ] allow simulation to pause and resume
+- [ ] fix plot display when app is initialized
 - [ ] publish to GitHub under public repo
 
