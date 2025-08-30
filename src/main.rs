@@ -1,6 +1,6 @@
 use std::time::Instant;
 use eframe::{egui, self};
-use egui_plot::{Bar, BarChart, Line, Plot, PlotBounds, PlotPoints};
+use egui_plot::{Line, Plot, PlotBounds, PlotPoints, Points};
 use egui::Color32;
 mod inverted_pendulum;
 
@@ -105,10 +105,6 @@ struct MyApp {
     angle_vel_points: Vec<[f64; 2]>,
     pos_points: Vec<[f64; 2]>,
     vel_points: Vec<[f64; 2]>,
-    pos_histo_points: Vec<Bar>,
-    vel_histo_points: Vec<Bar>,
-    angle_histo_points: Vec<Bar>,
-    angle_vel_histo_points: Vec<Bar>,
 
     // application booleans
     lqr_data_available: bool,
@@ -146,10 +142,6 @@ impl Default for MyApp {
             angle_vel_points: Vec::new(),
             pos_points: Vec::new(),
             vel_points: Vec::new(),
-            pos_histo_points: Vec::new(),
-            vel_histo_points: Vec::new(),
-            angle_histo_points: Vec::new(),
-            angle_vel_histo_points: Vec::new(),
             lqr_data_available: false,
             ga_running: false,
         }
@@ -444,43 +436,52 @@ impl eframe::App for MyApp {
                         });
                     });
 
-                    // Histograms for controller gains
+                    // 2d projections for controller gains
                     ui.vertical(|ui| {
-                        let hist_plot_height = 75.0; // Halved the height to fit four
-                        let gain_hist = Plot::new("gain_1_hist")
-                            .height(hist_plot_height)
-                            .x_axis_label("K_pos")
+                        let proj_plot_1 = Plot::new("x_v_proj")
+                            .x_axis_label("k_x")
+                            .y_axis_label("k_v")
                             .show_x(true)
-                            .show_y(false);
-                        gain_hist.show(ui, |plot_ui| {
-                            plot_ui.bar_chart(BarChart::new(self.pos_histo_points.clone()));
-                        });
+                            .show_y(true)
+                            .height(ui.available_height() / 2f32);
 
-                        let gain_hist_2 = Plot::new("gain_2_hist")
-                            .height(hist_plot_height)
-                            .x_axis_label("K_vel")
-                            .show_x(true)
-                            .show_y(false);
-                        gain_hist_2.show(ui, |plot_ui| {
-                            plot_ui.bar_chart(BarChart::new(self.vel_histo_points.clone()));
-                        });
+                            proj_plot_1.show(ui, |plot_ui| {
+                                // pull out 1st & 2nd element from the current population
+                                if self.current_population_sorted.is_some() {
+                                    let pts_data: Vec<[f64; 2]> = self.current_population_sorted
+                                        .clone()
+                                        .unwrap()
+                                        .iter()
+                                        .map(|x| [x[0] as f64, x[1] as f64])
+                                        .collect();
+                                    let proj_pts_1 = Points::new(pts_data)
+                                        .radius(3.0);
+                                    plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
+                                    plot_ui.points(proj_pts_1);
+                                }
+                            });
 
-                        let gain_hist_3 = Plot::new("gain_3_hist")
-                            .height(hist_plot_height)
-                            .x_axis_label("K_angle")
+                        let proj_plot_2 = Plot::new("theta_theta_dot_proj")
+                            .x_axis_label("k_theta")
+                            .y_axis_label("k_theta_dot")
                             .show_x(true)
-                            .show_y(false);
-                        gain_hist_3.show(ui, |plot_ui| {
-                            plot_ui.bar_chart(BarChart::new(self.angle_histo_points.clone()));
-                        });
+                            .show_y(true)
+                            .height(ui.available_height());
 
-                        let gain_hist_4 = Plot::new("gain_4_hist")
-                            .height(hist_plot_height)
-                            .x_axis_label("K_ang_vel")
-                            .show_x(true)
-                            .show_y(false);
-                        gain_hist_4.show(ui, |plot_ui| {
-                            plot_ui.bar_chart(BarChart::new(self.angle_vel_histo_points.clone()));
+                        proj_plot_2.show(ui, |plot_ui| {
+                            // pull out 3rd & 4th element from the current population
+                            if self.current_population_sorted.is_some() {
+                                let pts_data: Vec<[f64; 2]> = self.current_population_sorted
+                                    .clone()
+                                    .unwrap()
+                                    .iter()
+                                    .map(|x| [x[2] as f64, x[3] as f64])
+                                    .collect();
+                                let proj_pts_2 = Points::new(pts_data)
+                                    .radius(3.0);
+                                plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
+                                plot_ui.points(proj_pts_2);
+                            }
                         });
                     });
                 });
