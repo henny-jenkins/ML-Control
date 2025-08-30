@@ -22,7 +22,6 @@
             - [x] test
     - [x] live update cost plot
     - [x] live update of best individual performance
-    - [ ] lock GUI widgets during simulation
     - [ ] animate histograms and/or show 2d parameter space projections
 - [x] fix bugs
     - [x] random crashes
