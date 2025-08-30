@@ -73,7 +73,8 @@ fn main() -> Result<(), eframe::Error> {
 enum SimState {
     Running,
     Paused,
-    NotInitialized,
+    Finished,
+    Idle
 }
 
 struct MyApp {
@@ -152,7 +153,7 @@ impl Default for MyApp {
             pos_points: Vec::new(),
             vel_points: Vec::new(),
             lqr_data_available: false,
-            sim_state: SimState::NotInitialized,
+            sim_state: SimState::Idle,
         }
     }
 }
@@ -210,6 +211,8 @@ impl eframe::App for MyApp {
                     self.start_sim_time = Some(Instant::now());
                 }
             }
+        } else if (self.sim_state == SimState::Running) && (self.current_generation_num >= self.max_generations) {
+            self.sim_state = SimState::Finished;
         }
 
         // --- Side Panel for Configuration ---
@@ -330,7 +333,19 @@ impl eframe::App for MyApp {
                                 self.sim_state = SimState::Running;
                             }
                         }
-                        SimState::NotInitialized => {}
+                        SimState::Finished => {
+                            egui::Window::new("Simulation Complete")
+                                .collapsible(false)
+                                .resizable(false)
+                                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                                .show(ctx, |ui| {
+                                    ui.label("The simulation has finished!");
+                                    if ui.button("OK").clicked() {
+                                        self.sim_state = SimState::Idle;
+                                    }
+                                });
+                        }
+                        _ => {}
                     }
 
                     if ui.button("Reset").clicked() { 
@@ -466,7 +481,8 @@ impl eframe::App for MyApp {
                             .y_axis_label("k_v")
                             .show_x(true)
                             .show_y(true)
-                            .height(ui.available_height() / 2f32);
+                            .height(ui.available_height() / 2f32)
+                            .legend(egui_plot::Legend::default().position(egui_plot::Corner::LeftTop));
 
                         proj_plot_1.show(ui, |plot_ui| {
                             // pull out 1st & 2nd element from the current population
@@ -479,7 +495,7 @@ impl eframe::App for MyApp {
                                     .collect();
                                 let proj_pts_1 = Points::new(pts_data)
                                     .radius(3.0);
-                                plot_ui.points(proj_pts_1);
+                                plot_ui.points(proj_pts_1.name("GA Population"));
                             }
 
                             let lqr_soln = Points::new([-100f64, -183f64])
@@ -495,7 +511,9 @@ impl eframe::App for MyApp {
                             .y_axis_label("k_theta_dot")
                             .show_x(true)
                             .show_y(true)
-                            .height(ui.available_height());
+                            .height(ui.available_height())
+                            .legend(egui_plot::Legend::default().position(egui_plot::Corner::LeftTop));
+
 
                         proj_plot_2.show(ui, |plot_ui| {
                             // pull out 3rd & 4th element from the current population
@@ -509,7 +527,7 @@ impl eframe::App for MyApp {
                                 let proj_pts_2 = Points::new(pts_data)
                                     .radius(3.0);
                                 plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
-                                plot_ui.points(proj_pts_2);
+                                plot_ui.points(proj_pts_2.name("GA Population"));
                             }
 
                             let lqr_soln = Points::new([1683.2f64, 646.6130f64])
