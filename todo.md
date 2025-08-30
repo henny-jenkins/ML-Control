@@ -30,5 +30,5 @@
     - [x] search space bounds not working
 - [x] make performance updates — specifically fix freezing UI during simulation
 - [x] allow simulation to pause and resume
-- [ ] publish to GitHub under public repo
+- [x] publish to GitHub under public repo
 
