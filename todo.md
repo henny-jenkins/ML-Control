@@ -27,6 +27,7 @@
 - [x] fix bugs
     - [x] random crashes
     - [x] when simulation finishes, if it starts again the elapsed simulation duration is not correct
+    - [x] search space bounds not working
 - [ ] make performance updates — specifically fix freezing UI during simulation
 - [ ] publish to GitHub under public repo
 

@@ -189,11 +189,13 @@ pub fn crossover(pair: &(Vector4<f32>, Vector4<f32>)) -> Vector4<f32> {
     return child;
 }
 
-pub fn mutate(individual: &mut Vector4<f32>, stochasticity: &f32) {
+pub fn mutate(individual: &mut Vector4<f32>, stochasticity: &f32, lsl: i32, usl: i32) {
     // function to mutate an individual in-place based on the randomness specified by the genetic algorithm
     let dist = Normal::new(0.0, *stochasticity as f64).unwrap();    // construct normal distribution
     for x in individual.iter_mut() {
         *x += dist.sample(&mut thread_rng()) as f32;
+        if *x > usl as f32 { *x = usl as f32; }
+        else if *x < lsl as f32 {*x = lsl as f32; }
     }
 }
 

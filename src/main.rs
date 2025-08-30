@@ -18,6 +18,8 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     let t_end: &f32 = &gui_data.sim_time;
     let dt: &f32 = &gui_data.dt;
     let params: &inverted_pendulum::ModelParameters = &gui_data.params;
+    let lsl = gui_data.search_space_lsl;
+    let usl = gui_data.search_space_usl;
 
     // define weight vector for cost function
     let weight_vec = nalgebra::Vector4::new(1f32, 0.01f32, 10f32, 5f32);
@@ -28,7 +30,7 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
         // select parents for ith individual
         let parents: (nalgebra::Vector4<f32>, nalgebra::Vector4<f32>) = inverted_pendulum::select(&prv_generation, &cost_vals).unwrap();
         let mut child: nalgebra::Vector4<f32> = inverted_pendulum::crossover(&parents); // crossover
-        inverted_pendulum::mutate(&mut child, stochasticity); // mutate child
+        inverted_pendulum::mutate(&mut child, stochasticity, lsl, usl); // mutate child
         prv_generation[i] = child; // slot in next individual
         // evaluate fitness
         let child_performance: Vec<[f32; 5]> = inverted_pendulum::run_physics(&initial_state, &t_end, &dt, &child, &reference_state, &params);
@@ -382,6 +384,9 @@ impl eframe::App for MyApp {
                     ui.label(format!("Generation: {}", self.current_generation_num));
                     ui.label(format!("Best GA Cost: {}", self.best_cost));
                     ui.label(format!("LQR Cost: {}", self.lqr_cost));
+                    if let Some(best_ga_controller) = &self.current_population_sorted {
+                        ui.label(format!("Best controller: [{}, {}, {}, {}]", best_ga_controller[0][0], best_ga_controller[0][1], best_ga_controller[0][2], best_ga_controller[0][3],));
+                    }
                     ui.label(format!("Elapsed Time: {} [s]", self.elapsed_sim_time));
                 });
 
