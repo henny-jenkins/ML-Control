@@ -507,6 +507,9 @@ impl eframe::App for MyApp {
                                 .color(Color32::GOLD);
                             let ga_line = Line::new(PlotPoints::from(self.angle_points.clone()))
                                 .color(Color32::RED);
+                            let ref_line = Line::new(vec![[0.0, self.reference_signal[2] as f64], [self.sim_time as f64, self.reference_signal[2] as f64]])
+                                .color(Color32::GREEN);
+                            plot_ui.line(ref_line.name("Reference"));
 
                             if self.best_individual.is_some() {
                                 plot_ui.line(ga_line.name("GA Solution"));
@@ -533,6 +536,9 @@ impl eframe::App for MyApp {
                                 .color(Color32::GOLD);
                             let ga_line = Line::new(PlotPoints::from(self.angle_vel_points.clone()))
                                 .color(Color32::RED);
+                            let ref_line = Line::new(vec![[0.0, self.reference_signal[3] as f64], [self.sim_time as f64, self.reference_signal[3] as f64]])
+                                .color(Color32::GREEN);
+                            plot_ui.line(ref_line.name("Reference"));
 
                             if self.best_individual.is_some() {
                                 plot_ui.line(ga_line.name("GA Solution"));
@@ -561,6 +567,9 @@ impl eframe::App for MyApp {
                                 .color(Color32::GOLD);
                             let ga_line = Line::new(PlotPoints::from(self.pos_points.clone()))
                                 .color(Color32::RED);
+                            let ref_line = Line::new(vec![[0.0, self.reference_signal[0] as f64], [self.sim_time as f64, self.reference_signal[0] as f64]])
+                                .color(Color32::GREEN);
+                            plot_ui.line(ref_line.name("Reference"));
 
                             if self.best_individual.is_some() {
                                 plot_ui.line(ga_line.name("GA Solution"));
@@ -587,6 +596,9 @@ impl eframe::App for MyApp {
                                 .color(Color32::GOLD);
                             let ga_line = Line::new(PlotPoints::from(self.vel_points.clone()))
                                 .color(Color32::RED);
+                            let ref_line = Line::new(vec![[0.0, self.reference_signal[1] as f64], [self.sim_time as f64, self.reference_signal[1] as f64]])
+                                .color(Color32::GREEN);
+                            plot_ui.line(ref_line.name("Reference"));
 
                             if self.best_individual.is_some() {
                                 plot_ui.line(ga_line.name("GA Solution"));
