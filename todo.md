@@ -24,7 +24,6 @@
     - [x] live update of best individual performance
     - [ ] lock GUI widgets during simulation
     - [ ] animate histograms and/or show 2d parameter space projections
-    - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
 - [ ] publish to GitHub under public repo
 - [x] fix bugs
     - [x] random crashes
