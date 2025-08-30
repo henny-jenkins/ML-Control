@@ -69,6 +69,13 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
+#[derive(PartialEq)]
+enum SimState {
+    Running,
+    Paused,
+    NotInitialized,
+}
+
 struct MyApp {
     // Simulation Parameters
     sim_time: f32,
@@ -108,9 +115,9 @@ struct MyApp {
     pos_points: Vec<[f64; 2]>,
     vel_points: Vec<[f64; 2]>,
 
-    // application booleans
+    // other app state variables
     lqr_data_available: bool,
-    ga_running: bool
+    sim_state: SimState,
 }
 
 impl Default for MyApp {
@@ -145,7 +152,7 @@ impl Default for MyApp {
             pos_points: Vec::new(),
             vel_points: Vec::new(),
             lqr_data_available: false,
-            ga_running: false,
+            sim_state: SimState::NotInitialized,
         }
     }
 }
@@ -155,7 +162,7 @@ impl eframe::App for MyApp {
         ctx.set_visuals(egui::Visuals::dark());
 
         // code to evolve the GA if appropriate
-        if self.ga_running && (self.current_generation_num < self.max_generations) {
+        if (self.sim_state == SimState::Running) && (self.current_generation_num < self.max_generations) {
             // evolve the next generation for the next frame
             if let (Some(pop), Some(costs)) = (self.current_population_sorted.take(), self.current_costs_sorted.take()) {
                 let (next_gen, next_costs) = evolve(pop, costs, self);
@@ -252,7 +259,7 @@ impl eframe::App for MyApp {
                 
                 ui.horizontal(|ui| {
                     if ui.button("Start GA").clicked() {
-                        self.ga_running = true;
+                        self.sim_state = SimState::Running;
                         self.current_generation_num = 0;
                         self.cost_points.clear();
                         self.elapsed_sim_time = 0f32;
@@ -312,9 +319,20 @@ impl eframe::App for MyApp {
                         self.current_costs_sorted = Some(cost_vals);
                     }
 
-                    if ui.button("Stop").clicked() {
-                        self.ga_running = false;
+                    match self.sim_state {
+                        SimState::Running => {
+                            if ui.button("Pause").clicked() {
+                                self.sim_state = SimState::Paused;
+                            }
+                        }
+                        SimState::Paused => {
+                            if ui.button("Resume").clicked() {
+                                self.sim_state = SimState::Running;
+                            }
+                        }
+                        SimState::NotInitialized => {}
                     }
+
                     if ui.button("Reset").clicked() { 
                         *self = Self::default();
                     }
