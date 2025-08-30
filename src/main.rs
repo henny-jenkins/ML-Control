@@ -300,7 +300,15 @@ impl eframe::App for MyApp {
                         self.current_generation_num += 1;
                         
                         // sort (ascending) the first population in terms of cost
-                        let mut paired: Vec<_> = init_generation.iter().cloned().zip(cost_vals.iter().cloned()).collect();
+                        let mut paired: Vec<_> = init_generation
+                            .into_iter()
+                            .zip(cost_vals.into_iter())
+                            .map(|(ind, cost)| {
+                                let safe_cost = if cost.is_finite() { cost } else { f32::MAX };
+                                (ind, safe_cost)
+                            })
+                            .collect();
+
                         paired.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
                         (init_generation, cost_vals) = paired.into_iter().unzip();
 

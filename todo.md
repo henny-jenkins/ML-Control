@@ -24,8 +24,8 @@
     - [x] live update of best individual performance
     - [ ] lock GUI widgets during simulation
     - [ ] animate histograms and/or show 2d parameter space projections
-- [ ] publish to GitHub under public repo
 - [x] fix bugs
     - [x] random crashes
     - [x] when simulation finishes, if it starts again the elapsed simulation duration is not correct
+- [ ] publish to GitHub under public repo
 
