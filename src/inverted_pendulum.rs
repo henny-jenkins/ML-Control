@@ -2,7 +2,7 @@
 // pendulum on a cart
 
 use nalgebra::Vector4;
-use rand::thread_rng;
+use rand::prelude::*;
 use rand_distr::{Normal, Distribution, WeightedIndex, Uniform};
 
 pub struct ModelParameters(pub f32, pub f32, pub f32, pub f32);
@@ -152,20 +152,33 @@ pub fn cost(reference_signal: &Vector4<f32>, simulation_output: &Vec<[f32; 5]>, 
     return total_cost;
 }
 
-pub fn select(population: &Vec<Vector4<f32>>, cost_vals: &Vec<f32>) -> (Vector4<f32>, Vector4<f32>) {
+pub fn select(population: &Vec<Vector4<f32>>, cost_vals: &Vec<f32>) -> Option<(Vector4<f32>, Vector4<f32>)> {
     // function to select a pair of individuals from a population, based on cost values
     
     // invert cost values to contruct weighted distribution — need f64 because WeightedAliasIndex
     // expects this
-    let cost_inverse: Vec<f64> = cost_vals.iter().map(|x| 1.0 / (*x as f64)).collect();
-    let dist = WeightedIndex::new(&cost_inverse).unwrap();
+     let cost_inverse: Vec<f64> = cost_vals
+            .iter()
+            .map(|&x| if x > 0.0 { 1.0 / (x as f64) } else { 0.0 }) // avoid div by 0
+            .collect();
+
+     // try to construct weighted distribution
+        let dist = match WeightedIndex::new(&cost_inverse) {
+            Ok(d) => d,
+            Err(_) => {
+                eprintln!("Warning: Invalid weight distribution, falling back to uniform random.");
+                let mut rng = thread_rng();
+                let idx1 = rng.gen_range(0..population.len());
+                let idx2 = rng.gen_range(0..population.len());
+                return Some((population[idx1], population[idx2]));
+            }
+        };
     let mut rng = thread_rng();
 
     // select two individuals from the population using weighted random selection
     let idx1 = dist.sample(&mut rng);
     let idx2 = dist.sample(&mut rng);
-    let result: (Vector4<f32>, Vector4<f32>) = (population[idx1], population[idx2]);
-    return result;
+    Some((population[idx1], population[idx2]))
 }
 
 pub fn crossover(pair: &(Vector4<f32>, Vector4<f32>)) -> Vector4<f32> {

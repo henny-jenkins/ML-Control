@@ -26,7 +26,7 @@
     - [ ] animate histograms and/or show 2d parameter space projections
     - [ ] answer: does rk4/imulation method need early exit in case it's unstable?
 - [ ] publish to GitHub under public repo
-- [ ] fix bugs
-    - [ ] random crashes
-    - [ ] when simulation finishes, if it starts again the elapsed simulation duration is not correct
+- [x] fix bugs
+    - [x] random crashes
+    - [x] when simulation finishes, if it starts again the elapsed simulation duration is not correct
 

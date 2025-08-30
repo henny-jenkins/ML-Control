@@ -26,7 +26,7 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     // elitism already handled, so determine the rest of the population
     for i in (*num_elitism)..prv_generation.len() {
         // select parents for ith individual
-        let parents: (nalgebra::Vector4<f32>, nalgebra::Vector4<f32>) = inverted_pendulum::select(&prv_generation, &cost_vals);
+        let parents: (nalgebra::Vector4<f32>, nalgebra::Vector4<f32>) = inverted_pendulum::select(&prv_generation, &cost_vals).unwrap();
         let mut child: nalgebra::Vector4<f32> = inverted_pendulum::crossover(&parents); // crossover
         inverted_pendulum::mutate(&mut child, stochasticity); // mutate child
         prv_generation[i] = child; // slot in next individual
@@ -40,7 +40,15 @@ fn evolve(mut prv_generation: Vec<nalgebra::Vector4<f32>>,
     }
 
     // rank order the population in terms of cost
-    let mut paired: Vec<_> = prv_generation.iter().cloned().zip(cost_vals.iter().cloned()).collect();
+    let mut paired: Vec<_> = prv_generation
+        .into_iter()
+        .zip(cost_vals.into_iter())
+        .map(|(ind, cost)| {
+            let safe_cost = if cost.is_finite() { cost } else { f32::MAX };
+            (ind, safe_cost)
+        })
+        .collect();
+
     paired.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
     let (next_generation, cost_vals): (Vec<_>, Vec<_>) = paired.into_iter().unzip();
 
@@ -253,6 +261,7 @@ impl eframe::App for MyApp {
                         self.ga_running = true;
                         self.current_generation_num = 0;
                         self.cost_points.clear();
+                        self.elapsed_sim_time = 0f32;
                         self.start_sim_time = Some(Instant::now());
 
                         // pull out algorithm config from GUI data
