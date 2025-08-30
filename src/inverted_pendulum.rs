@@ -1,4 +1,4 @@
-// A module containing an implementation of the linear and nonlinear dynamics for an inverted
+// A module containing an implementation of the nonlinear dynamics for an inverted
 // pendulum on a cart
 
 use nalgebra::Vector4;
