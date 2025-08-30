@@ -23,7 +23,7 @@
     - [x] live update cost plot
     - [x] live update of best individual performance
     - [x] animate histograms and/or show 2d parameter space projections
-    - [ ] add lqr solution to 2d param space projections
+    - [x] add lqr solution to 2d param space projections
 - [x] fix bugs
     - [x] random crashes
     - [x] when simulation finishes, if it starts again the elapsed simulation duration is not correct

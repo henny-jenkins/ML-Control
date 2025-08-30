@@ -450,21 +450,27 @@ impl eframe::App for MyApp {
                             .show_y(true)
                             .height(ui.available_height() / 2f32);
 
-                            proj_plot_1.show(ui, |plot_ui| {
-                                // pull out 1st & 2nd element from the current population
-                                if self.current_population_sorted.is_some() {
-                                    let pts_data: Vec<[f64; 2]> = self.current_population_sorted
-                                        .clone()
-                                        .unwrap()
-                                        .iter()
-                                        .map(|x| [x[0] as f64, x[1] as f64])
-                                        .collect();
-                                    let proj_pts_1 = Points::new(pts_data)
-                                        .radius(3.0);
-                                    plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
-                                    plot_ui.points(proj_pts_1);
-                                }
-                            });
+                        proj_plot_1.show(ui, |plot_ui| {
+                            // pull out 1st & 2nd element from the current population
+                            if self.current_population_sorted.is_some() {
+                                let pts_data: Vec<[f64; 2]> = self.current_population_sorted
+                                    .clone()
+                                    .unwrap()
+                                    .iter()
+                                    .map(|x| [x[0] as f64, x[1] as f64])
+                                    .collect();
+                                let proj_pts_1 = Points::new(pts_data)
+                                    .radius(3.0);
+                                plot_ui.points(proj_pts_1);
+                            }
+
+                            let lqr_soln = Points::new([-100f64, -183f64])
+                                .radius(3.0)
+                                .color(Color32::GOLD)
+                                .name("LQR Solution");
+                            if self.lqr_data_available { plot_ui.points(lqr_soln); }
+                            plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
+                        });
 
                         let proj_plot_2 = Plot::new("theta_theta_dot_proj")
                             .x_axis_label("k_theta")
@@ -487,6 +493,13 @@ impl eframe::App for MyApp {
                                 plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
                                 plot_ui.points(proj_pts_2);
                             }
+
+                            let lqr_soln = Points::new([1683.2f64, 646.6130f64])
+                                .radius(3.0)
+                                .color(Color32::GOLD)
+                                .name("LQR Solution");
+                            if self.lqr_data_available { plot_ui.points(lqr_soln); }
+                            plot_ui.set_plot_bounds(PlotBounds::from_min_max([self.search_space_lsl as f64, self.search_space_lsl as f64], [self.search_space_usl as f64, self.search_space_usl as f64]));
                         });
                     });
                 });
