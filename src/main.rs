@@ -129,7 +129,7 @@ impl Default for MyApp {
             reference_signal: nalgebra::Vector4::new(1f32, 0f32, 3.14f32, 0f32),
             initial_condition: nalgebra::Vector4::new(-1f32, 0f32, 3.15f32, 0f32),
             start_sim_time: None,
-            population_size: 25,
+            population_size: 150,
             stochasticity: 250f32,
             num_elitisim: 5,
             current_generation_num: 0,
